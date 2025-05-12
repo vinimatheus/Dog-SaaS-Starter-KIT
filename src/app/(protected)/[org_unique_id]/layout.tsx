@@ -42,7 +42,6 @@ export default async function AuthenticatedOrganizationLayout({
 
 	return (
 		<div className="relative flex w-full h-full flex-col items-start justify-start p-2">
-			<h1 className="h-14 font-bold">Organization: {org.name}</h1>
 			{children}
 		</div>
 	);
