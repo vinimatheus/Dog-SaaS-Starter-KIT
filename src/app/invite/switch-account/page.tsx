@@ -23,7 +23,7 @@ export default async function SwitchAccountPage({
   }
 
   if (!session?.user) {
-    redirect(`/auth/signin?callbackUrl=/invite?token=${token}`);
+    redirect(`/login?callbackUrl=/invite?token=${token}`);
   }
 
   return (

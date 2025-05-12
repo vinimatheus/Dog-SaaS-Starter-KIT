@@ -46,7 +46,7 @@ export default async function InvitePage({
 
   // Se o usuário não estiver logado, redireciona para o login
   if (!session?.user) {
-    redirect(`/auth/signin?callbackUrl=/invite?token=${token}`);
+    redirect(`/login?callbackUrl=/invite?token=${token}`);
   }
 
   // Se o email do convite não corresponder ao email do usuário logado

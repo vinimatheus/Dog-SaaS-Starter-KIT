@@ -31,7 +31,7 @@ export default async function OrganizationsPage() {
   const session = await auth();
 
   if (!session?.user?.id || !session.user.email) {
-    redirect("/auth/signin");
+    redirect("/login");
   }
 
   // Busca organizações e convites em paralelo

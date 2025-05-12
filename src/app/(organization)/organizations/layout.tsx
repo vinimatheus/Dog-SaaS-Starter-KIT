@@ -20,7 +20,7 @@ export default async function ProtectedLayout({
 	]).then(([authResult]) => authResult);
 
 	if (!session?.user?.id) {
-		redirect("/auth/signin");
+		redirect("/login");
 	}
 
 	const user = await prisma.user.findUnique({
@@ -35,7 +35,7 @@ export default async function ProtectedLayout({
 	});
 
 	if (!user) {
-		redirect("/auth/signin");
+		redirect("/login");
 	}
 
 	if (user.User_Organization.length === 0) {
