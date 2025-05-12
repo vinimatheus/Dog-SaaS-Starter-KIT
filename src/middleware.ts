@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { getToken } from "next-auth/jwt";
 
 export const config = {
 	matcher: [
@@ -42,17 +42,17 @@ export async function middleware(request: NextRequest) {
 		return NextResponse.next();
 	}
 
-	const session = await auth();
+	const token = await getToken({ req: request });
 
 	// Se não estiver autenticado e tentar acessar rota protegida
-	if (!session?.user && PROTECTED_ROUTES.has(pathname)) {
+	if (!token && PROTECTED_ROUTES.has(pathname)) {
 		const url = new URL("/login", request.url);
 		url.searchParams.set("callbackUrl", pathname);
 		return NextResponse.redirect(url);
 	}
 
 	// Se estiver autenticado e tentar acessar rota de login
-	if (session?.user && pathname === "/login") {
+	if (token && pathname === "/login") {
 		return NextResponse.redirect(new URL("/organizations", request.url));
 	}
 
