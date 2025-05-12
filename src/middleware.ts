@@ -16,6 +16,7 @@ export const config = {
 
 // Rotas públicas que não precisam de autenticação
 const PUBLIC_ROUTES = new Set([
+	"/",
 	"/login",
 	"/auth/signin",
 	"/auth/signout",
@@ -34,6 +35,14 @@ export async function middleware(request: NextRequest) {
 
 	// Se for uma rota pública, permite o acesso
 	if (PUBLIC_ROUTES.has(pathname)) {
+		// Se for a rota raiz, verifica se está autenticado para redirecionar
+		if (pathname === "/") {
+			const token = await getToken({ req: request });
+			if (token) {
+				return NextResponse.redirect(new URL("/organizations", request.url));
+			}
+			return NextResponse.redirect(new URL("/login", request.url));
+		}
 		return NextResponse.next();
 	}
 
