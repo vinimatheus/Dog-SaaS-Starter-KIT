@@ -137,11 +137,17 @@ export function MembersList({ members, organizationId, currentUserRole, currentU
               {(isOwner || (isAdmin && member.role === "USER")) && member.user_id !== currentUserId && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isLoading}>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8" 
+                      disabled={isLoading}
+                    >
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    {/* Ações disponíveis apenas para o proprietário */}
                     {isOwner && member.role !== "OWNER" && (
                       <>
                         <DropdownMenuItem
@@ -162,6 +168,7 @@ export function MembersList({ members, organizationId, currentUserRole, currentU
                         </DropdownMenuItem>
                       </>
                     )}
+                    {/* Ações disponíveis para proprietário e admin */}
                     {(isOwner || (isAdmin && member.role === "USER")) && (
                       <DropdownMenuItem
                         onClick={() => handleAction(member, "remove")}

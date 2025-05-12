@@ -65,9 +65,14 @@ export default async function OrganizationDashboard({
 		redirect("/organizations");
 	}
 
-	const isAdmin = organization.User_Organization.some(
-		(userOrg) => userOrg.role === "ADMIN" || userOrg.role === "OWNER"
+	// Encontrar o role do usuário atual na organização
+	const currentUserOrg = organization.User_Organization.find(
+		(userOrg) => userOrg.user_id === session.user.id
 	);
+
+	if (!currentUserOrg) {
+		redirect("/organizations");
+	}
 
 	return (
 		<div className="container mx-auto py-8 px-4">
@@ -85,13 +90,13 @@ export default async function OrganizationDashboard({
 					<MembersList
 						members={organization.User_Organization}
 						organizationId={organization.id}
-						currentUserRole={isAdmin ? "ADMIN" : "USER"}
+						currentUserRole={currentUserOrg.role}
 						currentUserId={session.user.id}
 					/>
 				</div>
 
 				{/* Seção de Convites */}
-				{isAdmin && organization.invites.length > 0 && (
+				{organization.invites.length > 0 && (
 					<div className="bg-white rounded-lg shadow-md p-6">
 						<h2 className="text-xl font-semibold mb-4">Convites Pendentes</h2>
 						<div className="space-y-4">
@@ -134,12 +139,10 @@ export default async function OrganizationDashboard({
 				)}
 
 				{/* Formulário de Convite */}
-				{isAdmin && (
-					<div className="bg-white rounded-lg shadow-md p-6">
-						<h2 className="text-xl font-semibold mb-4">Convidar Novo Membro</h2>
-						<InviteMemberForm organizationId={organization.id} />
-					</div>
-				)}
+				<div className="bg-white rounded-lg shadow-md p-6">
+					<h2 className="text-xl font-semibold mb-4">Convidar Novo Membro</h2>
+					<InviteMemberForm organizationId={organization.id} />
+				</div>
 			</div>
 		</div>
 	);
