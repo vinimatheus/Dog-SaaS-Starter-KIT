@@ -4,7 +4,7 @@ import { InviteMemberForm } from "@/components/invite-member-form";
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import { InviteActions } from "@/components/invite-actions";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MembersList } from "@/components/organization/members-list";
 
 interface MetadataProps {
 	params: Promise<{
@@ -82,38 +82,12 @@ export default async function OrganizationDashboard({
 				{/* Lista de Membros */}
 				<div className="bg-white rounded-lg shadow-md p-6">
 					<h2 className="text-xl font-semibold mb-4">Membros</h2>
-					<div className="space-y-4">
-						{organization.User_Organization.map((member) => (
-							<div
-								key={`${member.user_id}-${member.organization_id}`}
-								className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-							>
-								<Avatar>
-									<AvatarImage src={member.user.image || undefined} alt={member.user.name || member.user.email} />
-									<AvatarFallback>
-										{member.user.name?.[0]?.toUpperCase() || member.user.email[0].toUpperCase()}
-									</AvatarFallback>
-								</Avatar>
-								<div className="flex-1">
-									<p className="font-medium">{member.user.name || member.user.email}</p>
-									<p className="text-sm text-gray-600">{member.user.email}</p>
-								</div>
-								<div className="text-sm">
-									<span className={`px-2 py-1 rounded-full ${
-										member.role === "OWNER" 
-											? "bg-purple-100 text-purple-800"
-											: member.role === "ADMIN"
-											? "bg-blue-100 text-blue-800"
-											: "bg-gray-100 text-gray-800"
-									}`}>
-										{member.role === "OWNER" && "Proprietário"}
-										{member.role === "ADMIN" && "Administrador"}
-										{member.role === "USER" && "Membro"}
-									</span>
-								</div>
-							</div>
-						))}
-					</div>
+					<MembersList
+						members={organization.User_Organization}
+						organizationId={organization.id}
+						currentUserRole={isAdmin ? "ADMIN" : "USER"}
+						currentUserId={session.user.id}
+					/>
 				</div>
 
 				{/* Seção de Convites */}
