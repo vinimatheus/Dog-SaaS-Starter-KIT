@@ -15,10 +15,11 @@ export async function middleware(request: NextRequest) {
   const isPublic = publicRoutes.includes(pathname);
   const isLoggedIn = !!session?.user;
 
-  if (!isLoggedIn && !isPublic) {
-    console.log("🛑 Redirecting to /login");
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
+if (!isLoggedIn && !isPublic) {
+  console.log("🛑 Redirecting to /login"); // isso deve aparecer
+  return NextResponse.redirect(new URL("/login", request.url));
+}
+
 
   return NextResponse.next();
 }
