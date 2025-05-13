@@ -100,27 +100,27 @@ export function MembersList({ members, organizationId, currentUserRole, currentU
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-semibold mb-4">Membros</h2>
-      <div className="space-y-4">
+    <div className="bg-white rounded-md shadow-sm p-4">
+      <h2 className="text-lg font-medium mb-3">Membros</h2>
+      <div className="space-y-2">
         {members.map((member) => (
           <div
             key={`${member.user_id}-${member.organization_id}`}
-            className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+            className="flex items-center gap-2 p-2 bg-gray-50 rounded-md"
           >
-            <Avatar>
+            <Avatar className="h-7 w-7">
               <AvatarImage src={member.user.image || undefined} alt={member.user.name || member.user.email} />
-              <AvatarFallback>
+              <AvatarFallback className="text-xs">
                 {member.user.name?.[0]?.toUpperCase() || member.user.email[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1">
-              <p className="font-medium">{member.user.name || member.user.email}</p>
-              <p className="text-sm text-gray-600">{member.user.email}</p>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sm truncate">{member.user.name || member.user.email}</p>
+              <p className="text-xs text-gray-500 truncate">{member.user.email}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 ml-auto">
               <span
-                className={`px-2 py-1 rounded-full text-sm ${
+                className={`px-1.5 py-0.5 rounded-full text-xs ${
                   member.role === "OWNER"
                     ? "bg-purple-100 text-purple-800"
                     : member.role === "ADMIN"
@@ -139,14 +139,14 @@ export function MembersList({ members, organizationId, currentUserRole, currentU
                   <DropdownMenuTrigger asChild>
                     <Button 
                       variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8" 
+                      size="sm" 
+                      className="h-6 w-6 p-0" 
                       disabled={isLoading}
                     >
-                      <MoreVertical className="h-4 w-4" />
+                      <MoreVertical className="h-3 w-3" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="text-xs">
                     {/* Ações disponíveis apenas para o proprietário */}
                     {isOwner && member.role !== "OWNER" && (
                       <>
@@ -155,7 +155,7 @@ export function MembersList({ members, organizationId, currentUserRole, currentU
                           className="text-amber-600"
                           disabled={isLoading}
                         >
-                          <Crown className="mr-2 h-4 w-4" />
+                          <Crown className="mr-1.5 h-3 w-3" />
                           Transferir Propriedade
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -163,7 +163,7 @@ export function MembersList({ members, organizationId, currentUserRole, currentU
                           className="text-blue-600"
                           disabled={isLoading}
                         >
-                          <Shield className="mr-2 h-4 w-4" />
+                          <Shield className="mr-1.5 h-3 w-3" />
                           {member.role === "USER" ? "Tornar Administrador" : "Tornar Membro"}
                         </DropdownMenuItem>
                       </>
@@ -175,7 +175,7 @@ export function MembersList({ members, organizationId, currentUserRole, currentU
                         className="text-red-600"
                         disabled={isLoading}
                       >
-                        <UserX className="mr-2 h-4 w-4" />
+                        <UserX className="mr-1.5 h-3 w-3" />
                         Remover Membro
                       </DropdownMenuItem>
                     )}

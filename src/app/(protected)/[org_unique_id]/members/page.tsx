@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import { InviteActions } from "@/components/invite-actions";
 import { MembersList } from "@/components/organization/members-list";
+import { cn } from "@/lib/utils";
 
 interface MetadataProps {
 	params: Promise<{
@@ -77,18 +78,26 @@ export default async function MembersPage({
 	}
 
 	return (
-		<div className="container mx-auto py-8 px-4">
-			<div className="max-w-4xl mx-auto space-y-8">
+		<div className="w-full py-6 px-4">
+			<div className="grid gap-6">
 				<div className="flex justify-between items-center">
 					<div>
-						<h1 className="text-3xl font-bold">Membros</h1>
-						<p className="text-gray-600 mt-1">Gerencie os membros da organização</p>
+						<h1 className="text-xl font-semibold">Membros</h1>
+						<p className="text-sm text-muted-foreground mt-0.5">
+							Gerencie os membros da organização
+						</p>
 					</div>
 				</div>
-
-				{/* Lista de Membros */}
-				<div className="bg-white rounded-lg shadow-md p-6">
-					<h2 className="text-xl font-semibold mb-4">Membros</h2>
+	
+				{/* Formulário de Convite */}
+				<div className="bg-card rounded-md border border-muted p-4 w-full">
+					<h2 className="text-sm font-medium mb-3">Convidar novo membro</h2>
+					<InviteMemberForm organizationId={organization.id} />
+				</div>
+	
+				{/* Membros Ativos */}
+				<div className="bg-card rounded-md border border-muted p-4 w-full">
+					<h2 className="text-sm font-medium mb-3">Membros ativos</h2>
 					<MembersList
 						members={organization.User_Organization}
 						organizationId={organization.id}
@@ -96,36 +105,42 @@ export default async function MembersPage({
 						currentUserId={session.user.id}
 					/>
 				</div>
-
-				{/* Seção de Convites */}
+	
+				{/* Convites Pendentes */}
 				{organization.invites.length > 0 && (
-					<div className="bg-white rounded-lg shadow-md p-6">
-						<h2 className="text-xl font-semibold mb-4">Convites Pendentes</h2>
-						<div className="space-y-4">
+					<div className="bg-card rounded-md border border-muted p-4 w-full">
+						<h2 className="text-sm font-medium mb-3">Convites pendentes</h2>
+						<div className="space-y-2">
 							{organization.invites.map((invite) => (
 								<div
 									key={invite.id}
-									className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+									className="flex items-center justify-between p-3 bg-muted/30 rounded-md text-sm"
 								>
 									<div>
-										<p className="font-medium">{invite.email}</p>
-										<div className="flex items-center gap-2 mt-1">
-											<span className={`px-2 py-1 text-xs rounded-full ${
-												invite.role === "ADMIN"
-													? "bg-blue-100 text-blue-800"
-													: "bg-gray-100 text-gray-800"
-											}`}>
-												{invite.role === "ADMIN" ? "Administrador" : "Membro"}
+										<p className="font-medium text-sm">{invite.email}</p>
+										<div className="flex items-center gap-2 mt-1 text-xs">
+											<span
+												className={cn(
+													"px-2 py-0.5 rounded-full font-medium",
+													invite.role === "ADMIN"
+														? "bg-blue-100 text-blue-800"
+														: "bg-gray-100 text-gray-800"
+												)}
+											>
+												{invite.role === "ADMIN" ? "Admin" : "Membro"}
 											</span>
-											<span className={`px-2 py-1 text-xs rounded-full ${
-												invite.status === "PENDING"
-													? "bg-yellow-100 text-yellow-800"
-													: "bg-gray-100 text-gray-800"
-											}`}>
+											<span
+												className={cn(
+													"px-2 py-0.5 rounded-full font-medium",
+													invite.status === "PENDING"
+														? "bg-yellow-100 text-yellow-800"
+														: "bg-gray-100 text-gray-800"
+												)}
+											>
 												{invite.status === "PENDING" ? "Pendente" : "Expirado"}
 											</span>
-											<span className="text-xs text-gray-500">
-												Enviado em {new Date(invite.created_at).toLocaleDateString("pt-BR")}
+											<span className="text-muted-foreground">
+												{new Date(invite.created_at).toLocaleDateString("pt-BR")}
 											</span>
 										</div>
 									</div>
@@ -139,13 +154,9 @@ export default async function MembersPage({
 						</div>
 					</div>
 				)}
-
-				{/* Formulário de Convite */}
-				<div className="bg-white rounded-lg shadow-md p-6">
-					<h2 className="text-xl font-semibold mb-4">Convidar Novo Membro</h2>
-					<InviteMemberForm organizationId={organization.id} />
-				</div>
 			</div>
 		</div>
 	);
+	
+	
 } 
