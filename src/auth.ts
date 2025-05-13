@@ -29,7 +29,7 @@ export const {
 				if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY não configurada")
 				if (!email || !from) throw new Error("Email ou remetente não configurados")
 
-				// ✅ Verifica reCAPTCHA
+				// ✅ Verifica reCAPTCHA - extrair token da URL
 				const recaptchaToken = new URL(url).searchParams.get("recaptchaToken")
 
 				if (!recaptchaToken) throw new Error("Token do reCAPTCHA ausente")
@@ -45,7 +45,7 @@ export const {
 					}
 				)
 
-				if (!recaptchaRes.data.success || recaptchaRes.data.score < 0.5) {
+				if (!recaptchaRes.data.success) {
 					throw new Error("Verificação do reCAPTCHA falhou")
 				}
 

@@ -114,36 +114,23 @@ export function LoginForm({
       return
     }
 
+    if (!recaptchaToken) {
+      setError("Por favor, complete a verificação reCAPTCHA")
+      return
+    }
+
     try {
       setIsLoading(true)
-      // Execute reCAPTCHA
-      if (!recaptchaRef.current) {
-        setError("Erro na verificação de segurança. Tente novamente.")
-        return
-      }
       
-      try {
-        // Execute o reCAPTCHA e obtenha o token
-        const token = await recaptchaRef.current.getValue()
-        
-        if (!token) {
-          setError("Por favor, complete a verificação reCAPTCHA")
-          return
-        }
-        
-        // Construir URL de callback com o token reCAPTCHA
-        const redirectUrlObj = new URL("/organizations", window.location.origin)
-        redirectUrlObj.searchParams.set("recaptchaToken", token)
-        const redirectTo = redirectUrlObj.toString()
-        
-        await signIn("google", { 
-          redirectTo,
-          csrfToken,
-        })
-      } catch (err) {
-        console.error("Erro ao executar reCAPTCHA:", err)
-        setError("Erro na verificação de segurança. Tente novamente.")
-      }
+      // Construir URL de callback com o token reCAPTCHA
+      const redirectUrlObj = new URL("/organizations", window.location.origin)
+      redirectUrlObj.searchParams.set("recaptchaToken", recaptchaToken)
+      const redirectTo = redirectUrlObj.toString()
+      
+      await signIn("google", { 
+        redirectTo,
+        csrfToken,
+      })
     } catch (error) {
       console.error("Erro no login com Google:", error)
       setError("Erro ao fazer login com Google. Tente novamente mais tarde.")
@@ -203,6 +190,7 @@ export function LoginForm({
               sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
               onChange={handleRecaptchaChange}
               size="normal"
+              theme="light"
               className="transform scale-90 sm:scale-100"
             />
           </div>
