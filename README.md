@@ -171,12 +171,6 @@ O projeto utiliza NextAuth.js v5 para autenticação, oferecendo múltiplos mét
 - Expiração automática dos links
 - Envio de emails via Resend
 
-#### 3. Credenciais (Email/Senha)
-- Login tradicional com email e senha
-- Senhas criptografadas com bcrypt
-- Proteção contra força bruta
-- Recuperação de senha
-
 ### Configuração de Autenticação
 
 1. Para Google OAuth:
