@@ -2,7 +2,8 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
-import Resend from "next-auth/providers/resend"
+import Resend from "next-auth/providers/resend";
+import { DefaultSession } from "next-auth";
 
 export const {
 	handlers,
@@ -82,9 +83,29 @@ export const {
 	],
 	callbacks: {
 		async jwt({ token, user }) {
+			// When the user signs in
 			if (user) {
 				token.id = user.id;
-	
+				
+				// Get current user data
+				const dbUser = await prisma.user.findUnique({
+					where: { id: user.id }
+				});
+
+				if (!dbUser) {
+					throw new Error("User not found");
+				}
+				
+				// Increment the session version when a new login happens
+				const updatedUser = await prisma.user.update({
+					where: { id: user.id },
+					data: { sessionVersion: dbUser.sessionVersion + 1 }
+				});
+				
+				// Store the updated version in the token
+				token.sessionVersion = updatedUser.sessionVersion;
+				
+				// Get organization info
 				const membership = await prisma.user_Organization.findFirst({
 					where: { user_id: user.id },
 					include: { organization: true },
@@ -95,14 +116,37 @@ export const {
 				} else {
 					token.orgId = null; // <- importante para indicar ausência de org
 				}
+			} else if (token.id) {
+				// For existing sessions, verify the token's session version against the database
+				const dbUser = await prisma.user.findUnique({
+					where: { id: token.id as string }
+				});
+				
+				if (!dbUser) {
+					// User doesn't exist anymore
+					return { ...token, error: "User not found" };
+				}
+				
+				// If token version doesn't match the current version in the database,
+				// it means the user has logged in elsewhere and this session should be invalidated
+				if (token.sessionVersion !== dbUser.sessionVersion) {
+					// Return token with error to invalidate this session
+					return { ...token, error: "Session invalidated" };
+				}
 			}
 	
 			return token;
 		},
 	
 		async session({ session, token }) {
+			if (token.error) {
+				// Force user to login again as a new session object rather than null
+				return { expires: "", user: { name: "", email: "" } } as DefaultSession;
+			}
+			
 			session.user.id = token.id as string;
 			session.user.orgId = token.orgId as string | undefined;
+			session.user.sessionVersion = token.sessionVersion as number;
 			return session;
 		},
 	
@@ -111,8 +155,10 @@ export const {
 		},
 	},	
 	events: {
-		createUser: async ({ user }) => {
-			if (!user.id) {
+		createUser: async (params) => {
+			const { user } = params;
+			
+			if (!user || !user.id) {
 				throw new Error("User ID is required");
 			}
 		},
