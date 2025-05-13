@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import type { User } from "next-auth"
 
 import {
   Avatar,
@@ -33,10 +34,10 @@ import {
 import { Button } from "@/components/ui/button"
 
 interface NavUserProps {
-  user: {
-    name: string | null
-    email: string | null
-    image: string | null
+  user: User & {
+    id: string
+    role?: string
+    orgId?: string
   }
 }
 
@@ -49,7 +50,7 @@ export function NavUser({ user }: NavUserProps) {
     router.push("/")
   }
 
-  const getInitials = (name: string | null) => {
+  const getInitials = (name: string | null | undefined) => {
     if (!name) return "??"
     return name
       .split(" ")
