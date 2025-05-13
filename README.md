@@ -96,8 +96,7 @@ starter-org-dog/
 ├── src/                    # Código fonte principal
 │   ├── app/               # Rotas e páginas (App Router)
 │   ├── components/        # Componentes React reutilizáveis
-│   ├── lib/              # Utilitários e configurações
-│   └── styles/           # Estilos globais
+│   └── lib/           # Estilos globais
 ├── prisma/                # Schema e migrações do banco de dados
 ├── public/               # Arquivos estáticos
 └── ...
@@ -275,14 +274,6 @@ npx shadcn-ui@latest add [nome-do-componente]
 - `npm run postinstall` - Gera o cliente Prisma após instalação
 - `npm run vercel-build` - Script específico para deploy na Vercel
 
-## 🔄 CI/CD
-
-O projeto está configurado para deploy automático na Vercel, incluindo:
-- Build otimizado
-- Geração automática do cliente Prisma
-- Push do banco de dados
-- Preview deployments
-
 ## 🤝 Contribuindo
 
 1. Faça um Fork do projeto
@@ -294,11 +285,4 @@ O projeto está configurado para deploy automático na Vercel, incluindo:
 ## 📝 Licença
 
 Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
-
-## 📧 Suporte
-
-Para suporte, envie um email para vinicius.matheus.moreira@gmail.com ou abra uma issue no [GitHub](https://github.com/vinimatheus/starter-org-dog/issues).
-
----
-
 Desenvolvido com ❤️ por [Vinicius Matheus](https://github.com/vinimatheus)
