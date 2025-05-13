@@ -201,23 +201,6 @@ O projeto utiliza NextAuth.js v5 para autenticação, oferecendo múltiplos mét
 - Proteção de rotas
 - Validação de email
 
-### Rotas Protegidas
-
-```typescript
-// Exemplo de proteção de rota
-import { auth } from "@/auth"
-
-export default async function ProtectedPage() {
-  const session = await auth()
-  
-  if (!session) {
-    redirect("/login")
-  }
-  
-  return <div>Conteúdo protegido</div>
-}
-```
-
 ## 🎨 UI/UX
 
 O projeto utiliza o [shadcn/ui](https://ui.shadcn.com), uma coleção de componentes reutilizáveis construídos com Radix UI e Tailwind CSS:

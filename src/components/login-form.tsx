@@ -1,8 +1,8 @@
 "use client"
 
 import * as z from "zod"
-import { useState } from "react"
-import { signIn } from "next-auth/react"
+import { useState, useEffect } from "react"
+import { signIn, getCsrfToken } from "next-auth/react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Dog } from "lucide-react"
@@ -34,6 +34,16 @@ export function LoginForm({
   const [isLoading, setIsLoading] = useState(false)
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [csrfToken, setCsrfToken] = useState<string | null>(null)
+
+  // Carregar token CSRF ao montar o componente
+  useEffect(() => {
+    const loadCsrfToken = async () => {
+      const token = await getCsrfToken()
+      setCsrfToken(token)
+    }
+    loadCsrfToken()
+  }, [])
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -44,6 +54,11 @@ export function LoginForm({
   })
 
   const onSubmit = async (values: LoginValues) => {
+    if (!csrfToken) {
+      setError("Erro de segurança: Token CSRF não encontrado")
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 
@@ -51,11 +66,16 @@ export function LoginForm({
       const result = await signIn("resend", {
         email: values.email,
         redirect: false,
-        callbackUrl: "/organizations"
+        callbackUrl: "/organizations",
+        csrfToken,
       })
 
       if (result?.error) {
-        setError(result.error)
+        if (result.error === "CSRF") {
+          setError("Erro de segurança. Por favor, recarregue a página e tente novamente.")
+        } else {
+          setError(result.error)
+        }
         return
       }
 
@@ -68,9 +88,16 @@ export function LoginForm({
     }
   }
 
-  const handleGoogleSignIn = (e: React.MouseEvent) => {
+  const handleGoogleSignIn = async (e: React.MouseEvent) => {
     e.preventDefault()
-    signIn("google", { redirectTo: "/organizations" })
+    if (!csrfToken) {
+      setError("Erro de segurança: Token CSRF não encontrado")
+      return
+    }
+    await signIn("google", { 
+      redirectTo: "/organizations",
+      csrfToken, // Adicionar token CSRF explicitamente
+    })
   }
 
   return (
