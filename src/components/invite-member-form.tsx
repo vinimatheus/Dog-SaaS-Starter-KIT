@@ -57,20 +57,16 @@ export function InviteMemberForm({
   });
 
   const onSubmit = async (values: InviteMemberValues) => {
-    console.log('onSubmit chamado com valores:', values);
     try {
       startTransition(async () => {
-        console.log('Iniciando envio do convite:', values);
         const formData = new FormData();
         formData.append("email", values.email);
         formData.append("role", values.role);
         formData.append("organizationId", organizationId);
         
-        console.log('Chamando inviteMemberAction...');
         const result = await inviteMemberAction(formData);
         
         if (result?.success) {
-          console.log('Convite enviado com sucesso!');
           toast.success("Convite enviado com sucesso!");
           form.reset();
           onSuccess?.();
@@ -79,7 +75,6 @@ export function InviteMemberForm({
         }
       });
     } catch (error) {
-      console.error('Erro ao enviar convite:', error);
       if (error instanceof Error) {
         toast.error(error.message);
       } else {
@@ -90,19 +85,10 @@ export function InviteMemberForm({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Form submit event triggered');
-    console.log('Form state:', form.getValues());
-    console.log('Form errors:', form.formState.errors);
     
     form.handleSubmit(
-      (data) => {
-        console.log('Form valid, submitting:', data);
-        onSubmit(data);
-      },
-      (errors) => {
-        console.log('Form validation failed:', errors);
-        toast.error('Por favor, corrija os erros no formulário');
-      }
+      (data) => onSubmit(data),
+      () => toast.error('Por favor, corrija os erros no formulário')
     )(e);
   };
 
@@ -123,7 +109,6 @@ export function InviteMemberForm({
                     placeholder="membro@exemplo.com"
                     disabled={isPending}
                     onChange={(e) => {
-                      console.log('Input onChange:', e.target.value);
                       field.onChange(e);
                       form.trigger('email');
                     }}
@@ -146,7 +131,6 @@ export function InviteMemberForm({
                 <Select
                   disabled={isPending}
                   onValueChange={(value: Role) => {
-                    console.log('Role onChange:', value);
                     field.onChange(value);
                     form.trigger('role');
                   }}
@@ -174,7 +158,6 @@ export function InviteMemberForm({
             disabled={isPending} 
             type="submit" 
             className="w-full"
-            onClick={() => console.log('Button clicked')}
           >
             {isPending ? (
               <span className="flex items-center gap-2">

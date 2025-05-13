@@ -25,14 +25,10 @@ export function AppSidebar() {
   const { organization } = useOrganization()
   const { data: session } = useSession()
   
-  console.log('Organization:', organization)
   
   const routes = organization 
     ? getOrganizationRoutes(organization.uniqueId)
     : []
-
-  console.log('Routes:', routes)
-  console.log('Current pathname:', pathname)
 
   // Se não houver organização, mostra uma mensagem
   if (!organization) {

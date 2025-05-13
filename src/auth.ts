@@ -112,7 +112,6 @@ export const {
 	},	
 	events: {
 		createUser: async ({ user }) => {
-			console.log("Usuário criado:", user);
 			if (!user.id) {
 				throw new Error("User ID is required");
 			}

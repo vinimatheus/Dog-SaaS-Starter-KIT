@@ -116,21 +116,27 @@ export function NavUser({ user }: NavUserProps) {
               <DropdownMenuItem asChild>
                 <Button
                   variant="ghost"
-                  className="w-full justify-start gap-2 px-2"
-                  onClick={() => router.push("/settings/profile")}
+                  className="w-full justify-start gap-2 px-2 opacity-50 cursor-not-allowed"
+                  disabled
                 >
                   <BadgeCheck className="size-4" />
-                  Perfil
+                  <span className="flex items-center gap-2">
+                    Perfil
+                    <span className="text-xs text-muted-foreground">(Em breve)</span>
+                  </span>
                 </Button>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Button
                   variant="ghost"
-                  className="w-full justify-start gap-2 px-2"
-                  onClick={() => router.push("/settings/notifications")}
+                  className="w-full justify-start gap-2 px-2 opacity-50 cursor-not-allowed"
+                  disabled
                 >
                   <Bell className="size-4" />
-                  Notificações
+                  <span className="flex items-center gap-2">
+                    Notificações
+                    <span className="text-xs text-muted-foreground">(Em breve)</span>
+                  </span>
                 </Button>
               </DropdownMenuItem>
             </DropdownMenuGroup>

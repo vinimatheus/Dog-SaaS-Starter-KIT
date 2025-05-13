@@ -42,20 +42,15 @@ export function CreateOrganizationForm({
   });
 
   const onSubmit = async (values: z.infer<typeof CreateOrganizationSchema>) => {
-    console.log('onSubmit chamado com valores:', values);
     try {
       startTransition(async () => {
-        console.log('Iniciando criação da organização:', values);
         const formData = new FormData();
         formData.append("name", values.name);
         
-        console.log('Chamando createOrganizationAction...');
         await createOrganizationAction(formData);
-        console.log('Organização criada com sucesso!');
         onSuccess?.();
       });
     } catch (error) {
-      console.error('Erro ao criar organização:', error);
       if (error instanceof Error) {
         toast.error(error.message);
       } else {
@@ -66,19 +61,10 @@ export function CreateOrganizationForm({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Form submit event triggered');
-    console.log('Form state:', form.getValues());
-    console.log('Form errors:', form.formState.errors);
     
     form.handleSubmit(
-      (data) => {
-        console.log('Form valid, submitting:', data);
-        onSubmit(data);
-      },
-      (errors) => {
-        console.log('Form validation failed:', errors);
-        toast.error('Por favor, corrija os erros no formulário');
-      }
+      (data) => onSubmit(data),
+      () => toast.error('Por favor, corrija os erros no formulário')
     )(e);
   };
 
@@ -98,9 +84,7 @@ export function CreateOrganizationForm({
                     disabled={isPending}
                     placeholder="Minha Empresa"
                     onChange={(e) => {
-                      console.log('Input onChange:', e.target.value);
                       field.onChange(e);
-                      // Força validação após mudança
                       form.trigger('name');
                     }}
                   />
@@ -116,7 +100,6 @@ export function CreateOrganizationForm({
             disabled={isPending} 
             type="submit" 
             className="w-full"
-            onClick={() => console.log('Button clicked')}
           >
             {isPending ? "Criando..." : "Criar Organização"}
           </Button>
