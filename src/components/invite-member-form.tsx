@@ -63,45 +63,50 @@ export function InviteMemberForm({
   });
 
   const onSubmit = async (values: InviteMemberValues) => {
-    try {
-      startTransition(async () => {
+    startTransition(async () => {
+      try {
         const formData = new FormData();
         formData.append("email", values.email);
         formData.append("role", values.role);
         formData.append("organizationId", organizationId);
         
+        // Toast de carregamento
+        const toastId = toast.loading('Enviando convite...');
+        
+        // Chamar action
         const result = await inviteMemberAction(formData);
         
-        if (result?.success) {
-          toast.success("Convite enviado com sucesso!");
+        if (result.success) {
+          // Atualizar toast para sucesso
+          toast.success('Convite enviado com sucesso!', { 
+            id: toastId,
+            description: `Um email foi enviado para ${values.email}`
+          });
           form.reset();
           onSuccess?.();
         } else {
-          throw new Error("Erro ao enviar convite");
+          // Atualizar toast para erro
+          toast.error('Falha ao enviar convite', { 
+            id: toastId,
+            description: result.error || 'Ocorreu um erro inesperado'
+          });
         }
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Erro ao enviar convite");
+      } catch (error) {
+        // Erro não tratado
+        toast.error('Erro ao processar o convite', {
+          description: error instanceof Error 
+            ? error.message 
+            : 'Ocorreu um erro inesperado ao processar seu convite'
+        });
       }
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    form.handleSubmit(
-      (data) => onSubmit(data),
-      () => toast.error('Por favor, corrija os erros no formulário')
-    )(e);
+    });
   };
 
   return (
     <div className={cn('flex flex-col w-full', className)} {...props}>
       <div className="bg-white p-4 rounded-md shadow-sm border border-gray-100 w-full">
       <Form {...form}>
-          <form onSubmit={handleSubmit} className="space-y-4 w-full">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-full">
             <div className="flex flex-row gap-4 w-full">
           <FormField
             control={form.control}

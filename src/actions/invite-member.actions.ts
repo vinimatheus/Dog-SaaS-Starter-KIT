@@ -13,7 +13,7 @@ interface InviteResult {
   success: boolean;
   error?: string;
   inviteId?: string;
-  }
+}
 
 interface ManageInviteResult {
   success: boolean;
@@ -244,13 +244,17 @@ export async function inviteMemberAction(formData: FormData): Promise<InviteResu
       };
     }
 
+    if (session.user.email?.toLowerCase() === email.toLowerCase()) {
+      return {
+        success: false,
+        error: "Você não pode convidar a si mesmo",
+      };
+    }
     
     const [organization, userOrg, existingInvite, existingMember] = await Promise.all([
-      
       prisma.organization.findUnique({
         where: { id: organizationId },
       }),
-      
       prisma.user_Organization.findFirst({
         where: {
           user_id: session.user.id,
@@ -260,7 +264,6 @@ export async function inviteMemberAction(formData: FormData): Promise<InviteResu
           },
         },
       }),
-      
       prisma.invite.findFirst({
         where: {
           AND: [
@@ -270,7 +273,6 @@ export async function inviteMemberAction(formData: FormData): Promise<InviteResu
           ],
         },
       }),
-      
       prisma.user_Organization.findFirst({
         where: {
           organization_id: organizationId,
@@ -281,7 +283,6 @@ export async function inviteMemberAction(formData: FormData): Promise<InviteResu
       }),
     ]);
 
-    
     if (!organization) {
       return {
         success: false,
@@ -310,21 +311,18 @@ export async function inviteMemberAction(formData: FormData): Promise<InviteResu
       };
     }
 
-    
     const invite = await prisma.invite.create({
       data: {
         email,
         organization_id: organizationId,
         invited_by_id: session.user.id,
         role,
-        expires_at: addDays(new Date(), 7), 
+        expires_at: addDays(new Date(), 7),
       },
     });
 
-    
     const emailSent = await sendInviteEmail(invite, organization);
     if (!emailSent) {
-      
       await prisma.invite.update({
         where: { id: invite.id },
         data: { status: "EXPIRED" },

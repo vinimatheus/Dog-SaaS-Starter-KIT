@@ -77,6 +77,8 @@ export default async function MembersPage({
 		redirect("/organizations");
 	}
 
+	const userRole = currentUserOrg.role;
+
 	return (
 		<div className="w-full py-6 px-4">
 			<div className="grid gap-6">
@@ -89,11 +91,13 @@ export default async function MembersPage({
 					</div>
 				</div>
 	
-				{/* Formulário de Convite */}
-				<div className="bg-card rounded-md border border-muted p-4 w-full">
-					<h2 className="text-sm font-medium mb-3">Convidar novo membro</h2>
-					<InviteMemberForm organizationId={organization.id} />
-				</div>
+				{/* Formulário de Convite - Apenas para admin e owner */}
+				{(userRole === "ADMIN" || userRole === "OWNER") && (
+					<div className="bg-card rounded-md border border-muted p-4 w-full">
+						<h2 className="text-sm font-medium mb-3">Convidar novo membro</h2>
+						<InviteMemberForm organizationId={organization.id} />
+					</div>
+				)}
 	
 				{/* Membros Ativos */}
 				<div className="bg-card rounded-md border border-muted p-4 w-full">
