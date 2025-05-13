@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  postgresql:
+    image: bitnami/postgresql:latest
+    container_name: postgresql_container
+    environment:
+      - POSTGRESQL_USERNAME=dogsaas
+      - POSTGRESQL_PASSWORD=dogsaas
+      - POSTGRESQL_DATABASE=dogsaas
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgresql_data:/bitnami/postgresql
+volumes:
+  postgresql_data:
+    driver: local

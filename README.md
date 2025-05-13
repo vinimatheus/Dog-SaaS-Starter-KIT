@@ -2,25 +2,34 @@
 
 Um projeto moderno e robusto construído com Next.js 15, React 19, Prisma e TypeScript, oferecendo uma base sólida para aplicações web organizacionais.
 
-## 🚀 Tecnologias Principais
-
-- **Next.js 15.3.2** - Framework React com recursos avançados
-- **React 19** - Biblioteca JavaScript para construção de interfaces
-- **TypeScript** - Superset JavaScript com tipagem estática
-- **Prisma** - ORM moderno para banco de dados
-- **NextAuth.js** - Autenticação completa e segura
-- **TailwindCSS** - Framework CSS utilitário
-- **Radix UI** - Componentes acessíveis e personalizáveis
-- **Zod** - Validação de esquemas TypeScript
-- **React Hook Form** - Gerenciamento de formulários
-
 ## 📋 Pré-requisitos
 
 - Node.js (versão LTS recomendada)
 - npm ou yarn
-- Banco de dados PostgreSQL
+- Docker e Docker Compose (para banco de dados)
 
-## 🛠️ Instalação
+## 🛠️ Instalação e Configuração
+
+### 1. Banco de Dados com Docker
+
+O projeto utiliza PostgreSQL rodando em um container Docker. Para iniciar:
+
+```bash
+# Inicia o container do PostgreSQL
+docker-compose up -d
+
+# Verifica se o container está rodando
+docker ps
+```
+
+O banco de dados estará disponível em:
+- Host: localhost
+- Porta: 5432
+- Usuário: dogsaas
+- Senha: dogsaas
+- Banco: dogsaas
+
+### 2. Configuração do Projeto
 
 1. Clone o repositório:
 ```bash
@@ -36,10 +45,24 @@ yarn install
 ```
 
 3. Configure as variáveis de ambiente:
-```bash
-cp .env.example .env.local
+```env
+# Banco de Dados (Docker)
+DATABASE_URL="postgresql://dogsaas:dogsaas@localhost:5432/dogsaas?schema=public"
+
+# NextAuth
+AUTH_SECRET="sua-chave-secreta-aqui"
+
+# Email (Resend)
+RESEND_API_KEY="sua-api-key-do-resend"
+EMAIL_FROM="seu-email@seudominio.com"
+
+# Google OAuth
+GOOGLE_CLIENT_ID="seu-client-id-do-google"
+GOOGLE_CLIENT_SECRET="seu-client-secret-do-google"
+
+# URL da Aplicação
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
-Edite o arquivo `.env.local` com suas configurações.
 
 4. Execute as migrações do banco de dados:
 ```bash
@@ -54,14 +77,17 @@ npm run dev
 yarn dev
 ```
 
-## 🚀 Scripts Disponíveis
+## 🚀 Tecnologias Principais
 
-- `npm run dev` - Inicia o servidor de desenvolvimento com Turbopack
-- `npm run build` - Cria a versão de produção
-- `npm run start` - Inicia o servidor de produção
-- `npm run lint` - Executa a verificação de linting
-- `npm run postinstall` - Gera o cliente Prisma após instalação
-- `npm run vercel-build` - Script específico para deploy na Vercel
+- **Next.js 15.3.2** - Framework React com recursos avançados
+- **React 19** - Biblioteca JavaScript para construção de interfaces
+- **TypeScript** - Superset JavaScript com tipagem estática
+- **Prisma** - ORM moderno para banco de dados
+- **NextAuth.js** - Autenticação completa e segura
+- **TailwindCSS** - Framework CSS utilitário
+- **Radix UI** - Componentes acessíveis e personalizáveis
+- **Zod** - Validação de esquemas TypeScript
+- **React Hook Form** - Gerenciamento de formulários
 
 ## 🏗️ Estrutura do Projeto
 
@@ -70,11 +96,63 @@ starter-org-dog/
 ├── src/                    # Código fonte principal
 │   ├── app/               # Rotas e páginas (App Router)
 │   ├── components/        # Componentes React reutilizáveis
-│   └── lib/           # Estilos globais
+│   ├── lib/              # Utilitários e configurações
+│   └── styles/           # Estilos globais
 ├── prisma/                # Schema e migrações do banco de dados
 ├── public/               # Arquivos estáticos
 └── ...
 ```
+
+## 🐳 Docker
+
+### Estrutura do Docker Compose
+
+```yaml
+version: '3.8'
+
+services:
+  postgresql:
+    image: bitnami/postgresql:latest
+    container_name: postgresql_container
+    environment:
+      - POSTGRESQL_USERNAME=dogsaas
+      - POSTGRESQL_PASSWORD=dogsaas
+      - POSTGRESQL_DATABASE=dogsaas
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgresql_data:/bitnami/postgresql
+
+volumes:
+  postgresql_data:
+    driver: local
+```
+
+### Comandos Docker Úteis
+
+```bash
+# Iniciar containers
+docker-compose up -d
+
+# Parar containers
+docker-compose down
+
+# Ver logs
+docker-compose logs -f
+
+# Reiniciar containers
+docker-compose restart
+
+# Remover volumes (cuidado: isso apaga os dados)
+docker-compose down -v
+```
+
+### Volumes e Persistência
+
+- Os dados do PostgreSQL são persistidos em um volume Docker
+- O volume é nomeado `postgresql_data`
+- Os dados permanecem mesmo após parar/remover os containers
+- Para limpar completamente os dados, use `docker-compose down -v`
 
 ## 🔒 Autenticação
 
@@ -100,33 +178,20 @@ O projeto utiliza NextAuth.js v5 para autenticação, oferecendo múltiplos mét
 - Proteção contra força bruta
 - Recuperação de senha
 
-### Configuração
+### Configuração de Autenticação
 
-1. Configure as variáveis de ambiente necessárias:
-```env
-# Google OAuth
-GOOGLE_ID="seu-google-client-id"
-GOOGLE_SECRET="seu-google-client-secret"
-
-# Magic Link (Resend)
-RESEND_API_KEY="seu-resend-api-key"
-EMAIL_FROM="noreply@seudominio.com"
-
-# NextAuth
-AUTH_SECRET="seu-auth-secret"
-NEXTAUTH_URL="http://localhost:3000"
-```
-
-2. Para Google OAuth:
+1. Para Google OAuth:
    - Acesse [Google Cloud Console](https://console.cloud.google.com)
    - Crie um novo projeto
    - Configure as credenciais OAuth 2.0
-   - Adicione os URIs de redirecionamento permitidos
+   - Adicione `http://localhost:3000/api/auth/callback/google` como URI de redirecionamento
+   - Copie o Client ID e Client Secret para as variáveis de ambiente
 
-3. Para Magic Link:
+2. Para Magic Link:
    - Crie uma conta no [Resend](https://resend.com)
    - Configure seu domínio de email
    - Obtenha sua API key
+   - Configure o `EMAIL_FROM` com um email verificado
 
 ### Segurança
 
@@ -159,7 +224,6 @@ export default async function ProtectedPage() {
 O projeto utiliza o [shadcn/ui](https://ui.shadcn.com), uma coleção de componentes reutilizáveis construídos com Radix UI e Tailwind CSS:
 
 - **Componentes Acessíveis**: Todos os componentes seguem as melhores práticas de acessibilidade (WAI-ARIA)
-- **Temas**: Suporte nativo a temas claro/escuro com `next-themes`
 - **Customização**: Componentes altamente customizáveis através do Tailwind CSS
 - **Tipografia**: Sistema de tipografia consistente
 - **Animações**: Animações suaves e interativas
@@ -202,6 +266,23 @@ npx shadcn-ui@latest add [nome-do-componente]
 - `eslint` - Linting
 - `@types/*` - Tipos TypeScript
 
+## 🚀 Scripts Disponíveis
+
+- `npm run dev` - Inicia o servidor de desenvolvimento com Turbopack
+- `npm run build` - Cria a versão de produção
+- `npm run start` - Inicia o servidor de produção
+- `npm run lint` - Executa a verificação de linting
+- `npm run postinstall` - Gera o cliente Prisma após instalação
+- `npm run vercel-build` - Script específico para deploy na Vercel
+
+## 🔄 CI/CD
+
+O projeto está configurado para deploy automático na Vercel, incluindo:
+- Build otimizado
+- Geração automática do cliente Prisma
+- Push do banco de dados
+- Preview deployments
+
 ## 🤝 Contribuindo
 
 1. Faça um Fork do projeto
@@ -213,6 +294,10 @@ npx shadcn-ui@latest add [nome-do-componente]
 ## 📝 Licença
 
 Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+## 📧 Suporte
+
+Para suporte, envie um email para vinicius.matheus.moreira@gmail.com ou abra uma issue no [GitHub](https://github.com/vinimatheus/starter-org-dog/issues).
 
 ---
 
