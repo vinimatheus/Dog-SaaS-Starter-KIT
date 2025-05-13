@@ -74,10 +74,14 @@ export function LoginForm({
     setError(null)
 
     try {
+      console.log("Token reCAPTCHA obtido:", recaptchaToken.substring(0, 10) + "...")
+      
       // Construir URL de callback com o token reCAPTCHA
       const callbackUrlObj = new URL("/organizations", window.location.origin)
       callbackUrlObj.searchParams.set("recaptchaToken", recaptchaToken)
       const callbackUrl = callbackUrlObj.toString()
+      
+      console.log("URL de callback com token:", callbackUrl.substring(0, 50) + "...")
       
       const result = await signIn("resend", {
         email: values.email,
@@ -85,6 +89,8 @@ export function LoginForm({
         callbackUrl,
         csrfToken,
       })
+
+      console.log("Resultado do signIn:", result)
 
       if (result?.error) {
         if (result.error === "CSRF") {
@@ -121,11 +127,14 @@ export function LoginForm({
 
     try {
       setIsLoading(true)
+      console.log("Token reCAPTCHA para Google:", recaptchaToken.substring(0, 10) + "...")
       
       // Construir URL de callback com o token reCAPTCHA
       const redirectUrlObj = new URL("/organizations", window.location.origin)
       redirectUrlObj.searchParams.set("recaptchaToken", recaptchaToken)
       const redirectTo = redirectUrlObj.toString()
+      
+      console.log("URL de redirecionamento para Google:", redirectTo.substring(0, 50) + "...")
       
       await signIn("google", { 
         redirectTo,
@@ -188,7 +197,10 @@ export function LoginForm({
             <ReCAPTCHA
               ref={recaptchaRef}
               sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
-              onChange={handleRecaptchaChange}
+              onChange={(token) => {
+                console.log("reCAPTCHA alterado, token recebido:", token ? "sim" : "não");
+                handleRecaptchaChange(token);
+              }}
               size="normal"
               theme="light"
               className="transform scale-90 sm:scale-100"

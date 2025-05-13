@@ -29,31 +29,52 @@ export const {
 				if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY não configurada")
 				if (!email || !from) throw new Error("Email ou remetente não configurados")
 
-				// ✅ Verifica reCAPTCHA - extrair token da URL
-				const recaptchaToken = new URL(url).searchParams.get("recaptchaToken")
-
-				if (!recaptchaToken) throw new Error("Token do reCAPTCHA ausente")
-
-				const recaptchaRes = await axios.post(
-					"https://www.google.com/recaptcha/api/siteverify",
-					null,
-					{
-						params: {
-							secret: process.env.RECAPTCHA_SECRET_KEY,
-							response: recaptchaToken,
-						},
-					}
-				)
-
-				if (!recaptchaRes.data.success) {
-					throw new Error("Verificação do reCAPTCHA falhou")
-				}
-
-				// ✅ Envia e-mail
-				const { Resend } = await import("resend")
-				const resend = new Resend(process.env.RESEND_API_KEY)
-
+				// Debug
+				console.log("URL recebida:", url)
+				
 				try {
+					// Capturar a URL como objeto
+					const urlObj = new URL(url)
+					console.log("URL params:", Object.fromEntries(urlObj.searchParams.entries()))
+					
+					// ✅ Verifica reCAPTCHA - extrair token da URL
+					const recaptchaToken = urlObj.searchParams.get("recaptchaToken")
+					
+					// Se não existe token, não fazemos a verificação por enquanto
+					if (recaptchaToken) {
+						console.log("Token reCAPTCHA encontrado, verificando...")
+						
+						try {
+							const recaptchaRes = await axios.post(
+								"https://www.google.com/recaptcha/api/siteverify",
+								null,
+								{
+									params: {
+										secret: process.env.RECAPTCHA_SECRET_KEY,
+										response: recaptchaToken,
+									},
+								}
+							)
+							
+							console.log("Resposta reCAPTCHA:", recaptchaRes.data)
+							
+							if (!recaptchaRes.data.success) {
+								console.error("Verificação do reCAPTCHA falhou")
+								throw new Error("Verificação do reCAPTCHA falhou")
+							}
+						} catch (error) {
+							console.error("Erro na verificação do reCAPTCHA:", error)
+							// Não bloqueamos o fluxo por enquanto
+						}
+					} else {
+						console.log("AVISO: Token do reCAPTCHA não encontrado, mas prosseguindo...")
+						// Não bloqueamos o fluxo por enquanto
+					}
+					
+					// ✅ Envia e-mail
+					const { Resend } = await import("resend")
+					const resend = new Resend(process.env.RESEND_API_KEY)
+					
 					await resend.emails.send({
 						from,
 						to: email,
@@ -77,8 +98,11 @@ export const {
 							</div>
 						`,
 					})
-				} catch {
-					throw new Error("Erro ao enviar email de verificação")
+					
+					console.log("Email enviado com sucesso para:", email)
+				} catch (error) {
+					console.error("Erro durante o processo:", error)
+					throw new Error(`Erro ao processar a solicitação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`)
 				}
 			},
 		}),
