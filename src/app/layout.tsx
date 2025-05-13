@@ -4,6 +4,7 @@ import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 import NextTopLoader from 'nextjs-toploader';      
+import { Analytics } from "@vercel/analytics/next"
 const geistSans = Geist({
 	variable: "--font-geist-sans",
 	subsets: ["latin"],
@@ -26,6 +27,7 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en" suppressHydrationWarning>
+			<Analytics/>
 			<body
 				suppressHydrationWarning
 				className={`${geistSans.variable} ${geistMono.variable} antialiased w-screen h-screen`}

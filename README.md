@@ -60,6 +60,10 @@ EMAIL_FROM="seu-email@seudominio.com"
 GOOGLE_CLIENT_ID="seu-client-id-do-google"
 GOOGLE_CLIENT_SECRET="seu-client-secret-do-google"
 
+# reCAPTCHA
+RECAPTCHA_SECRET_KEY="sua-chave-secreta-do-recaptcha"
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY="sua-chave-de-site-do-recaptcha"
+
 # URL da Aplicação
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
@@ -88,6 +92,7 @@ yarn dev
 - **Radix UI** - Componentes acessíveis e personalizáveis
 - **Zod** - Validação de esquemas TypeScript
 - **React Hook Form** - Gerenciamento de formulários
+- **reCAPTCHA** - Proteção contra bots e spam
 
 ## 🏗️ Estrutura do Projeto
 
@@ -186,11 +191,19 @@ O projeto utiliza NextAuth.js v5 para autenticação, oferecendo múltiplos mét
    - Obtenha sua API key
    - Configure o `EMAIL_FROM` com um email verificado
 
+3. Para reCAPTCHA:
+   - Acesse [Google reCAPTCHA Admin](https://www.google.com/recaptcha/admin)
+   - Registre um novo site
+   - Selecione reCAPTCHA v2 (Checkbox)
+   - Adicione seu domínio à lista de domínios permitidos
+   - Copie a Site Key e Secret Key para as variáveis de ambiente
+
 ### Segurança
 
 - Tokens JWT seguros
 - CSRF Protection
 - Rate limiting
+- reCAPTCHA para proteção contra bots
 - Sessões com expiração
 - Proteção de rotas
 - Validação de email
@@ -234,6 +247,7 @@ npx shadcn-ui@latest add [nome-do-componente]
 - `zod` - Validação
 - `date-fns` - Manipulação de datas
 - `resend` - Serviço de email
+- `react-google-recaptcha` - Integração com Google reCAPTCHA
 
 ### Desenvolvimento
 - `typescript` - Tipagem estática

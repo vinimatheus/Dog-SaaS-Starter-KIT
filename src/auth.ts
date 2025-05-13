@@ -121,7 +121,7 @@ export const {
 				// 🔴 (Removido) Atualização desnecessária do sessionVersion
 
 				token.sessionVersion = dbUser.sessionVersion
-
+	
 				const membership = await prisma.user_Organization.findFirst({
 					where: { user_id: user.id },
 					include: { organization: true },
@@ -139,7 +139,7 @@ export const {
 					return { ...token, error: "Session invalidated" }
 				}
 			}
-
+	
 			return token
 		},
 		async session({ session, token }) {
@@ -155,7 +155,7 @@ export const {
 		async redirect({ baseUrl }) {
 			return baseUrl
 		},
-	},
+	},	
 	events: {
 		createUser: async ({ user }) => {
 			if (!user?.id) throw new Error("User ID is required")
