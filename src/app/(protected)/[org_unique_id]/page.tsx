@@ -1,10 +1,11 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { InviteMemberForm } from "@/components/invite-member-form";
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
-import { InviteActions } from "@/components/invite-actions";
-import { MembersList } from "@/components/organization/members-list";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Users, Mail } from "lucide-react";
 
 interface MetadataProps {
 	params: Promise<{
@@ -16,9 +17,12 @@ export async function generateMetadata({
 	params,
 }: MetadataProps): Promise<Metadata> {
 	const { org_unique_id } = await params;
-	
+	const organization = await prisma.organization.findUnique({
+		where: { uniqueId: org_unique_id },
+	});
+
 	return {
-		title: `Dashboard - ${org_unique_id}`,
+		title: `${organization?.name || org_unique_id} - Dashboard`,
 	};
 }
 
@@ -50,12 +54,7 @@ export default async function OrganizationDashboard({
 			},
 			invites: {
 				where: {
-					status: {
-						in: ["PENDING", "EXPIRED"],
-					},
-				},
-				orderBy: {
-					created_at: "desc",
+					status: "PENDING",
 				},
 			},
 		},
@@ -65,7 +64,6 @@ export default async function OrganizationDashboard({
 		redirect("/organizations");
 	}
 
-	// Encontrar o role do usuário atual na organização
 	const currentUserOrg = organization.User_Organization.find(
 		(userOrg) => userOrg.user_id === session.user.id
 	);
@@ -74,75 +72,72 @@ export default async function OrganizationDashboard({
 		redirect("/organizations");
 	}
 
+	const totalMembers = organization.User_Organization.length;
+	const pendingInvites = organization.invites.length;
+	const adminCount = organization.User_Organization.filter(
+		(userOrg) => userOrg.role === "ADMIN"
+	).length;
+
 	return (
 		<div className="container mx-auto py-8 px-4">
-			<div className="max-w-4xl mx-auto space-y-8">
+			<div className="max-w-6xl mx-auto space-y-8">
 				<div className="flex justify-between items-center">
 					<div>
 						<h1 className="text-3xl font-bold">{organization.name}</h1>
 						<p className="text-gray-600 mt-1">Dashboard da organização</p>
 					</div>
+					<Button asChild>
+						<Link href={`/${org_unique_id}/members`}>
+							Gerenciar Membros
+						</Link>
+					</Button>
 				</div>
 
-				{/* Lista de Membros */}
-				<div className="bg-white rounded-lg shadow-md p-6">
-					<h2 className="text-xl font-semibold mb-4">Membros</h2>
-					<MembersList
-						members={organization.User_Organization}
-						organizationId={organization.id}
-						currentUserRole={currentUserOrg.role}
-						currentUserId={session.user.id}
-					/>
+				<div className="grid gap-4 md:grid-cols-2">
+					<Card>
+						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+							<CardTitle className="text-sm font-medium">
+								Total de Membros
+							</CardTitle>
+							<Users className="h-4 w-4 text-muted-foreground" />
+						</CardHeader>
+						<CardContent>
+							<div className="text-2xl font-bold">{totalMembers}</div>
+							<p className="text-xs text-muted-foreground">
+								{adminCount} administradores
+							</p>
+						</CardContent>
+					</Card>
+
+					<Card>
+						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+							<CardTitle className="text-sm font-medium">
+								Convites Pendentes
+							</CardTitle>
+							<Mail className="h-4 w-4 text-muted-foreground" />
+						</CardHeader>
+						<CardContent>
+							<div className="text-2xl font-bold">{pendingInvites}</div>
+							<p className="text-xs text-muted-foreground">
+								aguardando aceitação
+							</p>
+						</CardContent>
+					</Card>
 				</div>
 
-				{/* Seção de Convites */}
-				{organization.invites.length > 0 && (
-					<div className="bg-white rounded-lg shadow-md p-6">
-						<h2 className="text-xl font-semibold mb-4">Convites Pendentes</h2>
-						<div className="space-y-4">
-							{organization.invites.map((invite) => (
-								<div
-									key={invite.id}
-									className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-								>
-									<div>
-										<p className="font-medium">{invite.email}</p>
-										<div className="flex items-center gap-2 mt-1">
-											<span className={`px-2 py-1 text-xs rounded-full ${
-												invite.role === "ADMIN"
-													? "bg-blue-100 text-blue-800"
-													: "bg-gray-100 text-gray-800"
-											}`}>
-												{invite.role === "ADMIN" ? "Administrador" : "Membro"}
-											</span>
-											<span className={`px-2 py-1 text-xs rounded-full ${
-												invite.status === "PENDING"
-													? "bg-yellow-100 text-yellow-800"
-													: "bg-gray-100 text-gray-800"
-											}`}>
-												{invite.status === "PENDING" ? "Pendente" : "Expirado"}
-											</span>
-											<span className="text-xs text-gray-500">
-												Enviado em {new Date(invite.created_at).toLocaleDateString("pt-BR")}
-											</span>
-										</div>
-									</div>
-									<InviteActions
-										inviteId={invite.id}
-										status={invite.status}
-										expiresAt={invite.expires_at}
-									/>
-								</div>
-							))}
+				<Card>
+					<CardHeader>
+						<CardTitle>Atividade Recente</CardTitle>
+						<CardDescription>
+							Últimas atividades na organização
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<div className="text-sm text-muted-foreground">
+							Em breve: Histórico de atividades da organização
 						</div>
-					</div>
-				)}
-
-				{/* Formulário de Convite */}
-				<div className="bg-white rounded-lg shadow-md p-6">
-					<h2 className="text-xl font-semibold mb-4">Convidar Novo Membro</h2>
-					<InviteMemberForm organizationId={organization.id} />
-				</div>
+					</CardContent>
+				</Card>
 			</div>
 		</div>
 	);
