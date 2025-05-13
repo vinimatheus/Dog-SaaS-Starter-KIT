@@ -14,7 +14,8 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
-  SidebarFooter
+  SidebarFooter,
+  SidebarContent
 } from "@/components/ui/sidebar"
 import { TeamSwitcher } from "@/components/team-switcher"
 import { NavUser } from "@/components/nav-user"
@@ -57,11 +58,11 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar>
+    <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader>
         <TeamSwitcher />
       </SidebarHeader>
-      <SidebarMenu>
+      <SidebarContent>
         {routes.map((route) => (
           <SidebarMenuItem key={route.url}>
             <SidebarMenuButton
@@ -92,7 +93,7 @@ export function AppSidebar() {
             )}
           </SidebarMenuItem>
         ))}
-      </SidebarMenu>
+      </SidebarContent>
       {session?.user && (
         <SidebarFooter>
           <NavUser user={session.user} />
