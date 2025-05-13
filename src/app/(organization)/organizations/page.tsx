@@ -34,9 +34,9 @@ export default async function OrganizationsPage() {
     redirect("/login");
   }
 
-  // Busca organizações e convites em paralelo
+  
   const [organizations, pendingInvites] = await Promise.all([
-    // Busca organizações do usuário
+    
     prisma.organization.findMany({
       where: {
         User_Organization: {
@@ -58,7 +58,7 @@ export default async function OrganizationsPage() {
         },
       },
     }) as Promise<OrganizationWithMembers[]>,
-    // Busca convites pendentes
+    
     prisma.invite.findMany({
       where: {
         email: session.user.email,

@@ -64,7 +64,7 @@ export async function acceptInviteAction(inviteId: string): Promise<AcceptInvite
       };
   }
 
-    // Verifica se o usuário já é membro da organização
+    
     const existingMembership = await prisma.user_Organization.findFirst({
       where: {
         user_id: session.user.id,
@@ -73,7 +73,7 @@ export async function acceptInviteAction(inviteId: string): Promise<AcceptInvite
     });
 
     if (existingMembership) {
-      // Se já é membro, apenas exclui o convite
+      
       await prisma.invite.delete({
         where: { id: inviteId },
       });
@@ -83,9 +83,9 @@ export async function acceptInviteAction(inviteId: string): Promise<AcceptInvite
       };
     }
 
-    // Aceita o convite e adiciona o usuário à organização
+    
     await prisma.$transaction([
-      // Exclui o convite ao invés de atualizar o status
+      
       prisma.invite.delete({
         where: { id: inviteId },
       }),

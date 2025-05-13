@@ -111,10 +111,10 @@ export async function resendInviteAction(inviteId: string): Promise<ManageInvite
       };
     }
 
-    // Verifica permissões
+    
     await checkInvitePermissions(session.user.id, invite.organization_id);
 
-    // Verifica status do convite
+    
     if (invite.status !== "PENDING") {
       return {
         success: false,
@@ -123,7 +123,7 @@ export async function resendInviteAction(inviteId: string): Promise<ManageInvite
       };
     }
 
-    // Verifica se o convite expirou
+    
     if (invite.expires_at < new Date()) {
       await prisma.invite.update({
         where: { id: inviteId },
@@ -136,7 +136,7 @@ export async function resendInviteAction(inviteId: string): Promise<ManageInvite
       };
     }
 
-    // Reenvia o email
+    
     const emailSent = await sendInviteEmail(invite, invite.organization);
     if (!emailSent) {
       return {
@@ -145,7 +145,7 @@ export async function resendInviteAction(inviteId: string): Promise<ManageInvite
       };
     }
 
-    // Atualiza a data de expiração
+    
     await prisma.invite.update({
       where: { id: inviteId },
       data: {
@@ -192,10 +192,10 @@ export async function deleteInviteAction(inviteId: string): Promise<ManageInvite
       };
     }
 
-    // Verifica permissões
+    
     await checkInvitePermissions(session.user.id, invite.organization_id);
 
-    // Verifica se o convite já foi aceito
+    
     if (invite.status === "ACCEPTED") {
       return {
         success: false,
@@ -204,7 +204,7 @@ export async function deleteInviteAction(inviteId: string): Promise<ManageInvite
       };
     }
 
-    // Exclui o convite
+    
     await prisma.invite.delete({
       where: { id: inviteId },
     });
@@ -244,13 +244,13 @@ export async function inviteMemberAction(formData: FormData): Promise<InviteResu
       };
     }
 
-    // Validações em paralelo
+    
     const [organization, userOrg, existingInvite, existingMember] = await Promise.all([
-      // Busca a organização
+      
       prisma.organization.findUnique({
         where: { id: organizationId },
       }),
-      // Verifica permissões
+      
       prisma.user_Organization.findFirst({
         where: {
           user_id: session.user.id,
@@ -260,7 +260,7 @@ export async function inviteMemberAction(formData: FormData): Promise<InviteResu
           },
         },
       }),
-      // Verifica convite pendente
+      
       prisma.invite.findFirst({
         where: {
           AND: [
@@ -270,7 +270,7 @@ export async function inviteMemberAction(formData: FormData): Promise<InviteResu
           ],
         },
       }),
-      // Verifica membro existente
+      
       prisma.user_Organization.findFirst({
         where: {
           organization_id: organizationId,
@@ -281,7 +281,7 @@ export async function inviteMemberAction(formData: FormData): Promise<InviteResu
       }),
     ]);
 
-    // Validações sequenciais
+    
     if (!organization) {
       return {
         success: false,
@@ -310,21 +310,21 @@ export async function inviteMemberAction(formData: FormData): Promise<InviteResu
       };
     }
 
-    // Cria o convite
+    
     const invite = await prisma.invite.create({
       data: {
         email,
         organization_id: organizationId,
         invited_by_id: session.user.id,
         role,
-        expires_at: addDays(new Date(), 7), // Convite expira em 7 dias
+        expires_at: addDays(new Date(), 7), 
       },
     });
 
-    // Envia o email de convite em paralelo com a revalidação
+    
     const emailSent = await sendInviteEmail(invite, organization);
     if (!emailSent) {
-      // Se falhar ao enviar o email, marca o convite como expirado
+      
       await prisma.invite.update({
         where: { id: invite.id },
         data: { status: "EXPIRED" },

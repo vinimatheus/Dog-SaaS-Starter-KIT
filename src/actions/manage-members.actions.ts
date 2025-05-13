@@ -58,10 +58,10 @@ export async function updateMemberRoleAction(
       };
     }
 
-    // Verifica se o usuário é o proprietário
+    
     await checkOwnerPermissions(session.user.id, organizationId);
 
-    // Verifica se o membro alvo existe
+    
     const targetMember = await prisma.user_Organization.findFirst({
       where: {
         user_id: targetUserId,
@@ -76,7 +76,7 @@ export async function updateMemberRoleAction(
       };
     }
 
-    // Não permite alterar o role do proprietário
+    
     if (targetMember.role === "OWNER") {
       return {
         success: false,
@@ -84,7 +84,7 @@ export async function updateMemberRoleAction(
       };
     }
 
-    // Atualiza o role
+    
     await prisma.user_Organization.update({
       where: {
         user_id_organization_id: {
@@ -125,10 +125,10 @@ export async function removeMemberAction(
       };
     }
 
-    // Verifica se o usuário tem permissão (OWNER ou ADMIN)
+    
     await checkAdminPermissions(session.user.id, organizationId);
 
-    // Verifica se o membro alvo existe
+    
     const targetMember = await prisma.user_Organization.findFirst({
       where: {
         user_id: targetUserId,
@@ -143,7 +143,7 @@ export async function removeMemberAction(
       };
     }
 
-    // Não permite remover o proprietário
+    
     if (targetMember.role === "OWNER") {
       return {
         success: false,
@@ -151,7 +151,7 @@ export async function removeMemberAction(
       };
     }
 
-    // Remove o membro
+    
     await prisma.user_Organization.delete({
       where: {
         user_id_organization_id: {
@@ -189,10 +189,10 @@ export async function transferOwnershipAction(
       };
     }
 
-    // Verifica se o usuário é o proprietário atual
+    
     await checkOwnerPermissions(session.user.id, organizationId);
 
-    // Verifica se o novo proprietário existe na organização
+    
     const newOwner = await prisma.user_Organization.findFirst({
       where: {
         user_id: newOwnerId,
@@ -207,7 +207,7 @@ export async function transferOwnershipAction(
       };
     }
 
-    // Não permite transferir para si mesmo
+    
     if (newOwnerId === session.user.id) {
       return {
         success: false,
@@ -215,9 +215,9 @@ export async function transferOwnershipAction(
       };
     }
 
-    // Inicia uma transação para garantir a consistência dos dados
+    
     await prisma.$transaction([
-      // Atualiza o novo proprietário para OWNER
+      
       prisma.user_Organization.update({
         where: {
           user_id_organization_id: {
@@ -229,7 +229,7 @@ export async function transferOwnershipAction(
           role: "OWNER",
         },
       }),
-      // Atualiza o proprietário atual para ADMIN
+      
       prisma.user_Organization.update({
         where: {
           user_id_organization_id: {
@@ -241,7 +241,7 @@ export async function transferOwnershipAction(
           role: "ADMIN",
         },
       }),
-      // Atualiza o owner_user_id na organização
+      
       prisma.organization.update({
         where: {
           id: organizationId,

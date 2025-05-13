@@ -36,7 +36,6 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(null)
   const [csrfToken, setCsrfToken] = useState<string | null>(null)
 
-  // Carregar token CSRF ao montar o componente
   useEffect(() => {
     const loadCsrfToken = async () => {
       const token = await getCsrfToken()
@@ -96,7 +95,7 @@ export function LoginForm({
     }
     await signIn("google", { 
       redirectTo: "/organizations",
-      csrfToken, // Adicionar token CSRF explicitamente
+      csrfToken,
     })
   }
 

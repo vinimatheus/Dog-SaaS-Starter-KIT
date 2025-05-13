@@ -30,7 +30,7 @@ export function AppSidebar() {
     ? getOrganizationRoutes(organization.uniqueId)
     : []
 
-  // Se não houver organização, mostra uma mensagem
+  
   if (!organization) {
     return (
       <Sidebar>

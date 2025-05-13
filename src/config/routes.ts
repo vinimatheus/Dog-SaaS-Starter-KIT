@@ -43,12 +43,12 @@ export const routes: Route[] = [
   },
 ]
 
-// Função auxiliar para gerar URLs com o ID da organização
+
 export const getOrgRoute = (orgUniqueId: string, path: string) => {
   return `/${orgUniqueId}${path}`
 }
 
-// Função para obter as rotas com o ID da organização
+
 export const getOrganizationRoutes = (orgUniqueId: string): Route[] => {
   return routes.map(route => ({
     ...route,

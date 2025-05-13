@@ -44,12 +44,12 @@ export default async function InvitePage({
     redirect("/");
   }
 
-  // Se o usuário não estiver logado, redireciona para o login
+  
   if (!session?.user) {
     redirect(`/login?callbackUrl=/invite?token=${token}`);
   }
 
-  // Se o email do convite não corresponder ao email do usuário logado
+  
   if (invite.email !== session.user.email) {
     redirect(`/invite/switch-account?token=${token}&email=${invite.email}`);
   }
