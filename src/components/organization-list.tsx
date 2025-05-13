@@ -14,23 +14,72 @@ import {
 	CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useState } from "react";
-
-type Organization = {
-	id: string;
-	name: string;
-	uniqueId: string;
-	type: "personal" | "team";
-};
+import { useState, useEffect } from "react";
+import { organizationsApi, Organization } from "@/lib/api-client";
 
 interface OrganizationListProps {
-	organizations: Organization[];
+	organizations?: Organization[];
 	currentOrgId?: string;
 }
 
-export function OrganizationList({ organizations, currentOrgId }: OrganizationListProps) {
+export function OrganizationList({ organizations: initialOrgs, currentOrgId }: OrganizationListProps) {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
+	const [organizations, setOrganizations] = useState<Organization[]>(initialOrgs || []);
+	const [loading, setLoading] = useState(initialOrgs ? false : true);
+	const [error, setError] = useState<string | null>(null);
+
+	useEffect(() => {
+		// Se não recebemos organizações iniciais, buscamos da API
+		if (!initialOrgs) {
+			fetchOrganizations();
+		}
+	}, [initialOrgs]);
+
+	// Função para buscar organizações da API
+	const fetchOrganizations = async () => {
+		try {
+			setLoading(true);
+			const data = await organizationsApi.getAll();
+			setOrganizations(data);
+			setError(null);
+		} catch (err) {
+			console.error("Erro ao buscar organizações:", err);
+			setError("Não foi possível carregar as organizações");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	// Se não temos organizações e estamos carregando, exibir estado de carregamento
+	if (loading && organizations.length === 0) {
+		return (
+			<Button variant="ghost" className="flex items-center justify-between gap-2 px-2" disabled>
+				<div className="h-5 w-5 rounded-full" />
+				<span className="text-sm font-medium">Carregando...</span>
+			</Button>
+		);
+	}
+
+	// Se tivemos um erro e não temos organizações, exibir estado de erro
+	if (error && organizations.length === 0) {
+		return (
+			<Button variant="ghost" className="flex items-center justify-between gap-2 px-2" disabled>
+				<div className="h-5 w-5 rounded-full" />
+				<span className="text-sm font-medium text-red-500">Erro ao carregar</span>
+			</Button>
+		);
+	}
+
+	// Se não temos organizações, exibir estado vazio
+	if (organizations.length === 0) {
+		return (
+			<Button variant="ghost" className="flex items-center justify-between gap-2 px-2" disabled>
+				<div className="h-5 w-5 rounded-full" />
+				<span className="text-sm font-medium">Nenhuma organização</span>
+			</Button>
+		);
+	}
 
 	const currentOrg = organizations.find((org) => org.uniqueId === currentOrgId) || organizations[0];
 
