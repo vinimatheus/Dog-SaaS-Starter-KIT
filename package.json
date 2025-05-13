@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "prisma generate && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
@@ -21,6 +21,7 @@
     "@radix-ui/react-popover": "^1.1.13",
     "@radix-ui/react-select": "^2.2.4",
     "@radix-ui/react-slot": "^1.2.2",
+    "altcha": "^1.4.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

@@ -1,17 +1,22 @@
 import { auth } from "@/auth";
-import { LoginButton } from "@/components/LoginButton";
 import { redirect } from "next/navigation";
+import { LoginForm } from "@/components/login-form";
 
-export default async function Home() {
-	const session = await auth();
+export default async function LoginPage() {
+
+  const session = await auth();
 
 
   if (session?.user?.id) {
 		redirect("/organizations");
   }
+  
   return (
-    <div className="w-full h-full flex justify-center items-center flex-col gap-y-4">
-      <LoginButton />
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
+      <div className="flex w-full max-w-sm flex-col gap-6">
+        <LoginForm />
+      </div>
     </div>
-  );
+  )
 }
+

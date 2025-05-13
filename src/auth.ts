@@ -2,6 +2,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
+import Resend from "next-auth/providers/resend"
 
 export const {
 	handlers,
@@ -17,6 +18,66 @@ export const {
 		Google({
 			clientId: process.env.GOOGLE_CLIENT_ID!,
 			clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+		}),
+		Resend({
+			apiKey: process.env.RESEND_API_KEY!,
+			from: process.env.EMAIL_FROM!,
+			server: process.env.NEXTAUTH_URL!,
+			sendVerificationRequest: async ({ identifier: email, url, provider: { from } }) => {
+				if (!process.env.RESEND_API_KEY) {
+					throw new Error("RESEND_API_KEY não configurada");
+				}
+
+				if (!email || !from) {
+					throw new Error("Email ou remetente não configurados");
+				}
+
+				const { Resend } = await import("resend");
+				const resend = new Resend(process.env.RESEND_API_KEY);
+
+				try {
+					await resend.emails.send({
+						from,
+						to: email,
+						subject: "Link de acesso para Dog Inc.",
+						headers: {
+							"X-Entity-Ref-ID": "dog-inc-login",
+							"List-Unsubscribe": `<mailto:${from}?subject=unsubscribe>`,
+							"Precedence": "bulk",
+							"X-Auto-Response-Suppress": "OOF, AutoReply",
+							"X-Gmail-Labels": "Login, Dog Inc",
+						},
+						html: `
+							<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+								<!-- Gmail Filter Metadata -->
+								<div style="display: none; max-height: 0px; overflow: hidden;">
+									Dog Inc Login Link
+									<!-- Gmail Filter: label:Login -->
+									<!-- Gmail Filter: label:Dog Inc -->
+								</div>
+								<!-- End Gmail Filter Metadata -->
+
+								<h1 style="color: #333;">Bem-vindo ao Dog Inc.</h1>
+								<p>Clique no link abaixo para fazer login:</p>
+								<a href="${url}" style="display: inline-block; background-color: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 16px 0;">
+									Fazer Login
+								</a>
+								<p style="color: #666; font-size: 14px;">
+									Se você não solicitou este email, pode ignorá-lo com segurança.
+								</p>
+								<hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+								<p style="color: #999; font-size: 12px; text-align: center;">
+									Este é um email automático. Por favor, não responda.
+									<br />
+									Para cancelar o recebimento destes emails, <a href="mailto:${from}?subject=unsubscribe" style="color: #666;">clique aqui</a>.
+								</p>
+							</div>
+						`,
+					});
+				} catch {
+					throw new Error("Erro ao enviar email de verificação");
+				}
+			},
 		}),
 	],
 	callbacks: {

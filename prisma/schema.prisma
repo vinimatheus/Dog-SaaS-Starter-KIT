@@ -150,3 +150,14 @@ enum InviteStatus {
   REJECTED
   EXPIRED
 }
+
+model LoginAttemptByIP {
+  id           String    @id @default(cuid())
+  ip           String
+  attempts     Int       @default(1)
+  lastAttempt  DateTime  @default(now())
+  blockedUntil DateTime?
+
+  @@unique([ip])
+  @@index([ip])
+}
