@@ -6,6 +6,13 @@ import Resend from "next-auth/providers/resend"
 import { DefaultSession } from "next-auth"
 import axios from "axios"
 
+// Habilita a validação de recaptcha na URL da verificação
+const addRecaptchaToUrl = (url: string, recaptchaToken: string): string => {
+	const urlObj = new URL(url)
+	urlObj.searchParams.set("recaptchaToken", recaptchaToken)
+	return urlObj.toString()
+}
+
 export const {
 	handlers,
 	signIn,
@@ -25,13 +32,12 @@ export const {
 			apiKey: process.env.RESEND_API_KEY!,
 			from: process.env.EMAIL_FROM!,
 			server: process.env.NEXTAUTH_URL!,
-			sendVerificationRequest: async ({ identifier: email, url, provider: { from }, token }) => {
+			sendVerificationRequest: async ({ identifier: email, url, provider: { from } }) => {
 				if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY não configurada")
 				if (!email || !from) throw new Error("Email ou remetente não configurados")
 
 				// ✅ Verifica reCAPTCHA
-				// Obtém o token do reCAPTCHA a partir dos parâmetros da solicitação
-				const recaptchaToken = (token as any)?.recaptchaToken
+				const recaptchaToken = new URL(url).searchParams.get("recaptchaToken")
 
 				if (!recaptchaToken) throw new Error("Token do reCAPTCHA ausente")
 

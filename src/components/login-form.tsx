@@ -74,12 +74,16 @@ export function LoginForm({
     setError(null)
 
     try {
+      // Construir URL de callback com o token reCAPTCHA
+      const callbackUrlObj = new URL("/organizations", window.location.origin)
+      callbackUrlObj.searchParams.set("recaptchaToken", recaptchaToken)
+      const callbackUrl = callbackUrlObj.toString()
+      
       const result = await signIn("resend", {
         email: values.email,
         redirect: false,
-        callbackUrl: "/organizations",
+        callbackUrl,
         csrfToken,
-        recaptchaToken,
       })
 
       if (result?.error) {
@@ -127,10 +131,14 @@ export function LoginForm({
           return
         }
         
+        // Construir URL de callback com o token reCAPTCHA
+        const redirectUrlObj = new URL("/organizations", window.location.origin)
+        redirectUrlObj.searchParams.set("recaptchaToken", token)
+        const redirectTo = redirectUrlObj.toString()
+        
         await signIn("google", { 
-          redirectTo: "/organizations",
+          redirectTo,
           csrfToken,
-          recaptchaToken: token,
         })
       } catch (err) {
         console.error("Erro ao executar reCAPTCHA:", err)
