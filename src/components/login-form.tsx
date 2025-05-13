@@ -76,7 +76,6 @@ export function LoginForm({
     try {
       console.log("Token reCAPTCHA obtido:", recaptchaToken.substring(0, 10) + "...")
       
-      // Construir URL de callback com o token reCAPTCHA
       const callbackUrlObj = new URL("/organizations", window.location.origin)
       callbackUrlObj.searchParams.set("recaptchaToken", recaptchaToken)
       const callbackUrl = callbackUrlObj.toString()
@@ -129,7 +128,6 @@ export function LoginForm({
       setIsLoading(true)
       console.log("Token reCAPTCHA para Google:", recaptchaToken.substring(0, 10) + "...")
       
-      // Construir URL de callback com o token reCAPTCHA
       const redirectUrlObj = new URL("/organizations", window.location.origin)
       redirectUrlObj.searchParams.set("recaptchaToken", recaptchaToken)
       const redirectTo = redirectUrlObj.toString()
@@ -144,7 +142,6 @@ export function LoginForm({
       console.error("Erro no login com Google:", error)
       setError("Erro ao fazer login com Google. Tente novamente mais tarde.")
     } finally {
-      // Reset reCAPTCHA
       recaptchaRef.current?.reset()
       setIsLoading(false)
     }

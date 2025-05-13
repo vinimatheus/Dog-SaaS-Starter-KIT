@@ -14,7 +14,7 @@ declare module 'next-auth' {
   }
 }
 
-// Adicionar suporte ao token de reCAPTCHA nos parâmetros de autenticação
+
 declare module 'next-auth/providers' {
   interface EmailConfig {
     sendVerificationRequest: (params: EmailProviderSendVerificationRequestParams & {
