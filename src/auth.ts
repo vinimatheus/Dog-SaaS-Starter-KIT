@@ -6,13 +6,6 @@ import Resend from "next-auth/providers/resend"
 import { DefaultSession } from "next-auth"
 import axios from "axios"
 
-// Habilita a validação de recaptcha na URL da verificação
-const addRecaptchaToUrl = (url: string, recaptchaToken: string): string => {
-	const urlObj = new URL(url)
-	urlObj.searchParams.set("recaptchaToken", recaptchaToken)
-	return urlObj.toString()
-}
-
 export const {
 	handlers,
 	signIn,
