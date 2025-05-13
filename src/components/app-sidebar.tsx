@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { useOrganization } from "@/contexts/organization-context"
 import { getOrganizationRoutes } from "@/config/routes"
+import { useSession } from "next-auth/react"
 import { 
   Sidebar, 
   SidebarHeader, 
@@ -12,13 +13,16 @@ import {
   SidebarMenuButton,
   SidebarMenuSub,
   SidebarMenuSubItem,
-  SidebarMenuSubButton
+  SidebarMenuSubButton,
+  SidebarFooter
 } from "@/components/ui/sidebar"
 import { TeamSwitcher } from "@/components/team-switcher"
+import { NavUser } from "@/components/nav-user"
 
 export function AppSidebar() {
   const pathname = usePathname()
   const { organization } = useOrganization()
+  const { data: session } = useSession()
   
   console.log('Organization:', organization)
   
@@ -43,6 +47,11 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        {session?.user && (
+          <SidebarFooter>
+            <NavUser user={session.user} />
+          </SidebarFooter>
+        )}
       </Sidebar>
     )
   }
@@ -84,6 +93,11 @@ export function AppSidebar() {
           </SidebarMenuItem>
         ))}
       </SidebarMenu>
+      {session?.user && (
+        <SidebarFooter>
+          <NavUser user={session.user} />
+        </SidebarFooter>
+      )}
     </Sidebar>
   )
 }

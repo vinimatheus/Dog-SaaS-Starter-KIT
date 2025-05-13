@@ -7,7 +7,6 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { cookies } from "next/headers";
 import { Separator } from "@/components/ui/separator";
-import { NavUser } from "@/components/nav-user";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -82,9 +81,6 @@ export default async function AuthenticatedOrganizationLayout({
 									</BreadcrumbItem>
 								</BreadcrumbList>
 							</Breadcrumb>
-						</div>
-						<div className="ml-auto px-4">
-							<NavUser user={session.user} />
 						</div>
 					</header>
 					<main className="flex flex-1 flex-col gap-4 p-4 pt-0">
