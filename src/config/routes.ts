@@ -1,4 +1,4 @@
-import { LucideIcon, LayoutDashboard, Users, UserCircle } from "lucide-react"
+import { LucideIcon, LayoutDashboard, Settings } from "lucide-react"
 
 export type Route = {
   title: string
@@ -31,27 +31,21 @@ export const routes: Route[] = [
       ],
   },
   {
-    title: "Membros",
-    url: "/members",
-    icon: Users,
+    title: "Configurações",
+    url: "/config",
+    icon: Settings,
+    isActive: true,
     items: [
       {
-        title: "Lista de Membros",
+        title: "Perfil",
+        url: "/profile",
+      },
+      {
+        title: "Membros",
         url: "/members",
       },
     ],
-  },
-  {
-    title: "Perfil",
-    url: "/profile",
-    icon: UserCircle,
-    items: [
-      {
-        title: "Meu Perfil",
-        url: "/profile",
-      },
-    ],
-  },
+  }
 ]
 
 
@@ -66,7 +60,9 @@ export const getOrganizationRoutes = (orgUniqueId: string): Route[] => {
     url: getOrgRoute(orgUniqueId, route.url),
     items: route.items?.map(item => ({
       ...item,
-      url: getOrgRoute(orgUniqueId, item.url),
+      url: getOrgRoute(orgUniqueId, route.url !== "" && item.url.startsWith("/") 
+        ? `${route.url}${item.url}` 
+        : `${route.url}/${item.url.replace(/^\//, "")}`),
     })),
   }))
 } 

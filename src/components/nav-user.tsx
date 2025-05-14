@@ -10,6 +10,7 @@ import {
 import { signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import type { User } from "next-auth"
+import { useOrganization } from "@/contexts/organization-context"
 
 import {
   Avatar,
@@ -44,6 +45,7 @@ interface NavUserProps {
 export function NavUser({ user }: NavUserProps) {
   const { isMobile } = useSidebar()
   const router = useRouter()
+  const { organization } = useOrganization()
 
   const handleSignOut = async () => {
     await signOut({ redirect: false })
@@ -58,6 +60,12 @@ export function NavUser({ user }: NavUserProps) {
       .join("")
       .toUpperCase()
       .slice(0, 2)
+  }
+
+  const navigateToProfile = () => {
+    if (organization) {
+      router.push(`/${organization.uniqueId}/config/profile`)
+    }
   }
 
   return (
@@ -116,14 +124,12 @@ export function NavUser({ user }: NavUserProps) {
               <DropdownMenuItem asChild>
                 <Button
                   variant="ghost"
-                  className="w-full justify-start gap-2 px-2 opacity-50 cursor-not-allowed"
-                  disabled
+                  className="w-full justify-start gap-2 px-2"
+                  onClick={navigateToProfile}
+                  disabled={!organization}
                 >
                   <BadgeCheck className="size-4" />
-                  <span className="flex items-center gap-2">
-                    Perfil
-                    <span className="text-xs text-muted-foreground">(Em breve)</span>
-                  </span>
+                  Perfil
                 </Button>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
