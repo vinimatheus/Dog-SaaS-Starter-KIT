@@ -13,7 +13,7 @@ interface InviteResult {
   success: boolean;
   error?: string;
   inviteId?: string;
-}
+  }
 
 interface ManageInviteResult {
   success: boolean;
@@ -282,7 +282,7 @@ export async function inviteMemberAction(formData: FormData): Promise<InviteResu
         },
       }),
     ]);
-
+    
     if (!organization) {
       return {
         success: false,
@@ -310,17 +310,17 @@ export async function inviteMemberAction(formData: FormData): Promise<InviteResu
         error: "Este usuário já é membro da organização",
       };
     }
-
+    
     const invite = await prisma.invite.create({
       data: {
         email,
         organization_id: organizationId,
         invited_by_id: session.user.id,
         role,
-        expires_at: addDays(new Date(), 7),
+        expires_at: addDays(new Date(), 7), 
       },
     });
-
+    
     const emailSent = await sendInviteEmail(invite, organization);
     if (!emailSent) {
       await prisma.invite.update({

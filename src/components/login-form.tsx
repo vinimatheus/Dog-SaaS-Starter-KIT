@@ -28,6 +28,8 @@ const loginSchema = z.object({
 
 type LoginValues = z.infer<typeof loginSchema>
 
+const isDevelopment = process.env.NODE_ENV === 'development';
+
 export function LoginForm({
   className,
   ...props
@@ -36,7 +38,7 @@ export function LoginForm({
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [csrfToken, setCsrfToken] = useState<string | null>(null)
-  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(isDevelopment ? 'dev-mode-token' : null)
   const recaptchaRef = useRef<ReCAPTCHA>(null)
 
   useEffect(() => {
@@ -65,7 +67,8 @@ export function LoginForm({
       return
     }
 
-    if (!recaptchaToken) {
+    // Verificar reCAPTCHA apenas em produção
+    if (!isDevelopment && !recaptchaToken) {
       setError("Por favor, complete a verificação reCAPTCHA")
       return
     }
@@ -74,13 +77,23 @@ export function LoginForm({
     setError(null)
 
     try {
-      console.log("Token reCAPTCHA obtido:", recaptchaToken.substring(0, 10) + "...")
+      console.log("Token reCAPTCHA obtido:", 
+        isDevelopment ? 'DESENVOLVIMENTO - reCAPTCHA ignorado' : recaptchaToken?.substring(0, 10) + "..."
+      )
       
       const callbackUrlObj = new URL("/organizations", window.location.origin)
-      callbackUrlObj.searchParams.set("recaptchaToken", recaptchaToken)
+      
+      // Em produção, adicionamos o token do reCAPTCHA
+      if (!isDevelopment && recaptchaToken) {
+        callbackUrlObj.searchParams.set("recaptchaToken", recaptchaToken)
+      } else if (isDevelopment) {
+        // Em desenvolvimento, adicionamos um token fictício
+        callbackUrlObj.searchParams.set("recaptchaToken", "dev-mode-token")
+      }
+      
       const callbackUrl = callbackUrlObj.toString()
       
-      console.log("URL de callback com token:", callbackUrl.substring(0, 50) + "...")
+      console.log("URL de callback:", callbackUrl.substring(0, 50) + "...")
       
       const result = await signIn("resend", {
         email: values.email,
@@ -106,9 +119,11 @@ export function LoginForm({
       setError("Erro ao enviar magic link. Tente novamente mais tarde.")
     } finally {
       setIsLoading(false)
-      // Reset reCAPTCHA após envio
-      recaptchaRef.current?.reset()
-      setRecaptchaToken(null)
+      // Reset reCAPTCHA após envio (apenas em produção)
+      if (!isDevelopment) {
+        recaptchaRef.current?.reset()
+        setRecaptchaToken(null)
+      }
     }
   }
 
@@ -119,17 +134,28 @@ export function LoginForm({
       return
     }
 
-    if (!recaptchaToken) {
+    // Verificar reCAPTCHA apenas em produção
+    if (!isDevelopment && !recaptchaToken) {
       setError("Por favor, complete a verificação reCAPTCHA")
       return
     }
 
     try {
       setIsLoading(true)
-      console.log("Token reCAPTCHA para Google:", recaptchaToken.substring(0, 10) + "...")
+      console.log("Token reCAPTCHA para Google:", 
+        isDevelopment ? 'DESENVOLVIMENTO - reCAPTCHA ignorado' : recaptchaToken?.substring(0, 10) + "..."
+      )
       
       const redirectUrlObj = new URL("/organizations", window.location.origin)
-      redirectUrlObj.searchParams.set("recaptchaToken", recaptchaToken)
+      
+      // Em produção, adicionamos o token do reCAPTCHA
+      if (!isDevelopment && recaptchaToken) {
+        redirectUrlObj.searchParams.set("recaptchaToken", recaptchaToken)
+      } else if (isDevelopment) {
+        // Em desenvolvimento, adicionamos um token fictício
+        redirectUrlObj.searchParams.set("recaptchaToken", "dev-mode-token")
+      }
+      
       const redirectTo = redirectUrlObj.toString()
       
       console.log("URL de redirecionamento para Google:", redirectTo.substring(0, 50) + "...")
@@ -142,7 +168,11 @@ export function LoginForm({
       console.error("Erro no login com Google:", error)
       setError("Erro ao fazer login com Google. Tente novamente mais tarde.")
     } finally {
-      recaptchaRef.current?.reset()
+      // Reset reCAPTCHA (apenas em produção)
+      if (!isDevelopment) {
+        recaptchaRef.current?.reset()
+        setRecaptchaToken(null)
+      }
       setIsLoading(false)
     }
   }
@@ -187,22 +217,32 @@ export function LoginForm({
             )}
           />
 
-          <div className="flex flex-col items-center my-4">
-            <div className="mb-2 text-sm text-muted-foreground">
-              Por favor, complete a verificação de segurança abaixo:
+          {/* Mostrar reCAPTCHA apenas em produção */}
+          {!isDevelopment && (
+            <div className="flex flex-col items-center my-4">
+              <div className="mb-2 text-sm text-muted-foreground">
+                Por favor, complete a verificação de segurança abaixo:
+              </div>
+              <ReCAPTCHA
+                ref={recaptchaRef}
+                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
+                onChange={(token) => {
+                  console.log("reCAPTCHA alterado, token recebido:", token ? "sim" : "não");
+                  handleRecaptchaChange(token);
+                }}
+                size="normal"
+                theme="light"
+                className="transform scale-90 sm:scale-100"
+              />
             </div>
-            <ReCAPTCHA
-              ref={recaptchaRef}
-              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
-              onChange={(token) => {
-                console.log("reCAPTCHA alterado, token recebido:", token ? "sim" : "não");
-                handleRecaptchaChange(token);
-              }}
-              size="normal"
-              theme="light"
-              className="transform scale-90 sm:scale-100"
-            />
-          </div>
+          )}
+
+          {/* Mostrar indicador de modo de desenvolvimento */}
+          {isDevelopment && (
+            <div className="text-center text-sm text-amber-600 bg-amber-50 p-2 rounded-md">
+              Modo de desenvolvimento: reCAPTCHA desativado
+            </div>
+          )}
 
           {error && (
             <p className="text-sm text-red-500">{error}</p>

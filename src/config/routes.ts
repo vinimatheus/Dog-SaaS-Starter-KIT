@@ -1,4 +1,4 @@
-import { LucideIcon, LayoutDashboard, Users } from "lucide-react"
+import { LucideIcon, LayoutDashboard, Users, UserCircle } from "lucide-react"
 
 export type Route = {
   title: string
@@ -38,6 +38,17 @@ export const routes: Route[] = [
       {
         title: "Lista de Membros",
         url: "/members",
+      },
+    ],
+  },
+  {
+    title: "Perfil",
+    url: "/profile",
+    icon: UserCircle,
+    items: [
+      {
+        title: "Meu Perfil",
+        url: "/profile",
       },
     ],
   },

@@ -6,11 +6,11 @@ import { headers } from "next/headers";
 export async function GET() {
 	try {
 		// Verificar autenticação
-		const session = await auth();
-		if (!session?.user?.id) {
-			return new NextResponse("Unauthorized", { status: 401 });
-		}
-		
+	const session = await auth();
+	if (!session?.user?.id) {
+		return new NextResponse("Unauthorized", { status: 401 });
+	}
+
 		// Obter cabeçalhos
 		const headersList = await headers();
 		
@@ -36,22 +36,22 @@ export async function GET() {
 		}
 		
 		// Buscar organizações do usuário
-		const memberships = await prisma.user_Organization.findMany({
-			where: { user_id: session.user.id },
-			include: {
-				organization: {
-					select: {
-						id: true,
-						name: true,
-						uniqueId: true,
-					},
+	const memberships = await prisma.user_Organization.findMany({
+		where: { user_id: session.user.id },
+		include: {
+			organization: {
+				select: {
+					id: true,
+					name: true,
+					uniqueId: true,
 				},
 			},
-		});
-		
-		const organizations = memberships.map((m) => m.organization);
-		
-		return NextResponse.json(organizations);
+		},
+	});
+
+	const organizations = memberships.map((m) => m.organization);
+
+	return NextResponse.json(organizations);
 	} catch (error) {
 		console.error("Erro ao buscar organizações:", error);
 		return new NextResponse("Internal Server Error", { status: 500 });

@@ -78,17 +78,17 @@ export function middleware(request: NextRequest) {
 	
 	// Verificar e processar rotas de organização
 	const routeMatch = matchOrganizationRoute(pathname);
-	
+
 	// Se for uma rota de organização, adicionar o ID da organização aos cabeçalhos
 	if (routeMatch.isOrgRoute && routeMatch.uniqueOrganizationId) {
-		const requestHeaders = new Headers(request.headers);
+	const requestHeaders = new Headers(request.headers);
 		requestHeaders.set("x-unique-org-id", routeMatch.uniqueOrganizationId);
-		
-		return NextResponse.next({
-			request: {
-				headers: requestHeaders,
-			},
-		});
+
+	return NextResponse.next({
+		request: {
+			headers: requestHeaders,
+		},
+	});
 	}
 	
 	// Permitir a solicitação para continuar

@@ -11,10 +11,17 @@ export const {
 	signIn,
 	signOut,
 	auth,
+	unstable_update,
 } = NextAuth({
 	adapter: PrismaAdapter(prisma),
 	session: {
 		strategy: "jwt",
+		maxAge: 30 * 24 * 60 * 60,
+		updateAge: 24 * 60 * 60,
+	},
+	pages: {
+		signIn: "/login",
+		error: "/error",
 	},
 	providers: [
 		Google({
@@ -29,18 +36,14 @@ export const {
 				if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY não configurada")
 				if (!email || !from) throw new Error("Email ou remetente não configurados")
 
-				// Debug
 				console.log("URL recebida:", url)
 				
 				try {
-					// Capturar a URL como objeto
 					const urlObj = new URL(url)
 					console.log("URL params:", Object.fromEntries(urlObj.searchParams.entries()))
 					
-					// ✅ Verifica reCAPTCHA - extrair token da URL
 					const recaptchaToken = urlObj.searchParams.get("recaptchaToken")
 					
-					// Se não existe token, não fazemos a verificação por enquanto
 					if (recaptchaToken) {
 						console.log("Token reCAPTCHA encontrado, verificando...")
 						
@@ -64,14 +67,11 @@ export const {
 							}
 						} catch (error) {
 							console.error("Erro na verificação do reCAPTCHA:", error)
-							// Não bloqueamos o fluxo por enquanto
 						}
 					} else {
 						console.log("AVISO: Token do reCAPTCHA não encontrado, mas prosseguindo...")
-						// Não bloqueamos o fluxo por enquanto
 					}
 					
-					// ✅ Envia e-mail
 					const { Resend } = await import("resend")
 					const resend = new Resend(process.env.RESEND_API_KEY)
 					
@@ -108,18 +108,24 @@ export const {
 		}),
 	],
 	callbacks: {
-		async jwt({ token, user }) {
+		async jwt({ token, user, trigger, session }) {
 			if (user) {
 				token.id = user.id
 
 				const dbUser = await prisma.user.findUnique({
-					where: { id: user.id }
+					where: { id: user.id },
+					select: {
+						id: true,
+						name: true,
+						email: true,
+						sessionVersion: true,
+					}
 				})
 
 				if (!dbUser) throw new Error("User not found")
 
-				// 🔴 (Removido) Atualização desnecessária do sessionVersion
-
+				token.name = dbUser.name
+				token.email = dbUser.email
 				token.sessionVersion = dbUser.sessionVersion
 	
 				const membership = await prisma.user_Organization.findFirst({
@@ -128,15 +134,53 @@ export const {
 				})
 
 				token.orgId = membership?.organization?.uniqueId ?? null
-			} else if (token.id) {
+			} 
+			else if (trigger === "update" && session) {
+				if (session.name) token.name = session.name;
+				
+				if (token.id) {
+					await prisma.user.update({
+						where: { id: token.id as string },
+						data: { sessionVersion: { increment: 1 } }
+					});
+					
+					const updatedUser = await prisma.user.findUnique({
+						where: { id: token.id as string },
+						select: { sessionVersion: true, name: true }
+					});
+					
+					if (updatedUser) {
+						token.sessionVersion = updatedUser.sessionVersion;
+						token.name = updatedUser.name;
+						console.log("Token updated with new values:", { 
+							name: token.name, 
+							sessionVersion: token.sessionVersion 
+						});
+					}
+				}
+			}
+			else if (token.id) {
 				const dbUser = await prisma.user.findUnique({
-					where: { id: token.id as string }
+					where: { id: token.id as string },
+					select: {
+						id: true,
+						name: true,
+						email: true,
+						sessionVersion: true,
+					}
 				})
 
 				if (!dbUser) return { ...token, error: "User not found" }
 
+				token.name = dbUser.name;
+				token.email = dbUser.email;
+				
 				if (token.sessionVersion !== dbUser.sessionVersion) {
-					return { ...token, error: "Session invalidated" }
+					console.log("Session version mismatch, refreshing token data", {
+						tokenVersion: token.sessionVersion,
+						dbVersion: dbUser.sessionVersion
+					});
+					token.sessionVersion = dbUser.sessionVersion;
 				}
 			}
 	
@@ -148,6 +192,8 @@ export const {
 			}
 
 			session.user.id = token.id as string
+			session.user.name = token.name as string | null
+			session.user.email = token.email as string
 			session.user.orgId = token.orgId as string | undefined
 			session.user.sessionVersion = token.sessionVersion as number
 			return session
@@ -159,6 +205,16 @@ export const {
 	events: {
 		createUser: async ({ user }) => {
 			if (!user?.id) throw new Error("User ID is required")
+		},
+		updateUser: async ({ user }) => {
+			if (!user?.id) throw new Error("User ID is required")
+			
+			await prisma.user.update({
+				where: { id: user.id },
+				data: { sessionVersion: { increment: 1 } }
+			});
+			
+			console.log("User updated, incremented session version for", user.id);
 		},
 	},
 	secret: process.env.AUTH_SECRET,

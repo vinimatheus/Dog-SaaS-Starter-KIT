@@ -14,6 +14,17 @@ export default async function ProtectedLayout({
 		redirect("/");
 	}
 
+	console.log("User session:", {
+		id: session.user.id,
+		name: session.user.name,
+		email: session.user.email
+	});
+
+	if (!session.user.name) {
+		const returnUrl = "/organizations";
+		redirect(`/complete-profile?returnTo=${encodeURIComponent(returnUrl)}`);
+	}
+
 	return (
 		<div className="flex min-h-screen">
 			{children}

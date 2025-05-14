@@ -5,6 +5,7 @@ import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 import NextTopLoader from 'nextjs-toploader';      
 import { Analytics } from "@vercel/analytics/next"
+
 const geistSans = Geist({
 	variable: "--font-geist-sans",
 	subsets: ["latin"],
@@ -34,7 +35,7 @@ export default function RootLayout({
 			>
 				<SessionProvider>
 				<NextTopLoader showSpinner={false} />
-					{children}
+						{children}
 					<Toaster richColors position="top-right" />
 				</SessionProvider>
 			</body>

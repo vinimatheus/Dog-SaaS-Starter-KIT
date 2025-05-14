@@ -64,7 +64,7 @@ export function InviteMemberForm({
 
   const onSubmit = async (values: InviteMemberValues) => {
     startTransition(async () => {
-      try {
+    try {
         const formData = new FormData();
         formData.append("email", values.email);
         formData.append("role", values.role);
