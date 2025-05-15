@@ -44,9 +44,9 @@ export function OrganizationSidebar({ org_unique_id, teamSwitcher }: Organizatio
             <SidebarMenuButton
               asChild
               tooltip="Membros"
-              isActive={pathname === `/organizations/${org_unique_id}/members`}
+              isActive={pathname === `/organizations/${org_unique_id}/config/members`}
             >
-              <Link href={`/organizations/${org_unique_id}/members`}>
+              <Link href={`/organizations/${org_unique_id}/config/members`}>
                 <Users className="h-4 w-4" />
                 <span>Membros</span>
               </Link>

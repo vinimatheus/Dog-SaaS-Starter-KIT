@@ -28,7 +28,7 @@ interface ProfileFormProps {
     email: string | null;
     image?: string | null;
   };
-  orgUniqueId: string; // Maintained for future use but not currently used
+  orgUniqueId: string;
 }
 
 export function ProfileForm({ user }: ProfileFormProps) {
@@ -59,7 +59,6 @@ export function ProfileForm({ user }: ProfileFormProps) {
             description: `Seu nome foi alterado para ${result.updatedName}`
           });
           
-          // Recarregar a página para atualizar os dados na UI
           router.refresh();
         } else {
           toast.error('Falha ao atualizar perfil', {

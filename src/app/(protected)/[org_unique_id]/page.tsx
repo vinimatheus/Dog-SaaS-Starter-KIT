@@ -87,7 +87,7 @@ export default async function OrganizationDashboard({
 						<p className="text-gray-600 mt-1">Dashboard da organização</p>
 					</div>
 					<Button asChild>
-						<Link href={`/${org_unique_id}/members`}>
+						<Link href={`/${org_unique_id}/config/members`}>
 							Gerenciar Membros
 						</Link>
 					</Button>

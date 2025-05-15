@@ -22,6 +22,22 @@ import { Button } from '@/components/ui/button';
 
 import { updateProfileAction } from '@/actions/update-profile.actions';
 
+// Safe URL validation function to prevent open redirect attacks
+const isSafeRedirect = (url: string) => {
+  try {
+    // Check if it's a relative URL (starts with /)
+    if (url.startsWith('/')) {
+      return true;
+    }
+    
+    // Otherwise, validate that it's an absolute URL within our domain
+    const parsedUrl = new URL(url, window.location.origin);
+    return parsedUrl.origin === window.location.origin;
+  } catch {
+    return false;
+  }
+};
+
 const CompleteProfileSchema = z.object({
   name: z.string()
     .min(2, "Nome deve ter pelo menos 2 caracteres")
@@ -73,9 +89,16 @@ export function CompleteProfileForm({
           
           console.log("Profile update successful:", result);
           
-          // Force a complete refresh to update session
+          // Use the router for safe navigation if possible
           setTimeout(() => {
-            window.location.href = returnTo;
+            if (isSafeRedirect(returnTo)) {
+              // Safe URL - can redirect
+              router.push(returnTo);
+            } else {
+              // Fallback to a safe default route if the URL isn't safe
+              console.warn("Unsafe redirect URL detected, using fallback route");
+              router.push('/organizations');
+            }
           }, 1000);
         } else {
           console.error("Profile update failed:", result);
