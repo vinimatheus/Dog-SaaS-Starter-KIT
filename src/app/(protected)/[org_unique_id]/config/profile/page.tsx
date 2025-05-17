@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserCircle } from "lucide-react";
 import Image from "next/image";
+import ClientAccountLinking from "./client-account-linking";
 
 interface MetadataProps {
 	params: Promise<{
@@ -64,7 +65,12 @@ export default async function ProfilePage({
 				id: true,
 				name: true,
 				email: true,
-				image: true
+				image: true,
+				accounts: {
+					select: {
+						provider: true
+					}
+				}
 			}
 		})
 	]);
@@ -76,6 +82,9 @@ export default async function ProfilePage({
 	if (!user) {
 		redirect("/login");
 	}
+
+	// Obter a lista de provedores vinculados
+	const linkedProviders = user.accounts.map(account => account.provider);
 
 	return (
 		<div className="space-y-6">
@@ -116,6 +125,12 @@ export default async function ProfilePage({
 						/>
 					</CardContent>
 				</Card>
+
+				{/* Componente de vinculação de contas */}
+				<ClientAccountLinking 
+					userEmail={user.email || ''}
+					linkedProviders={linkedProviders}
+				/>
 			</div>
 		</div>
 	);

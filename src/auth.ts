@@ -27,6 +27,7 @@ export const {
 		Google({
 			clientId: process.env.GOOGLE_CLIENT_ID!,
 			clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+			allowDangerousEmailAccountLinking: true,
 		}),
 		Resend({
 			apiKey: process.env.RESEND_API_KEY!,
@@ -201,6 +202,22 @@ export const {
 		async redirect({ baseUrl }) {
 			return baseUrl
 		},
+		async signIn({ user, account }) {
+			// Se o usuário já existe com este email, vincule a nova conta de provedor
+			if (user.email) {
+				const existingUser = await prisma.user.findUnique({
+					where: { email: user.email },
+					include: { accounts: true },
+				});
+				
+				// Se o usuário existe e não tem uma conta com este provedor
+				if (existingUser && account && !existingUser.accounts.some(a => a.provider === account.provider)) {
+					console.log(`Vinculando conta ${account.provider} ao usuário existente com email ${user.email}`);
+				}
+			}
+			
+			return true;
+		},
 	},	
 	events: {
 		createUser: async ({ user }) => {
@@ -215,6 +232,17 @@ export const {
 			});
 			
 			console.log("User updated, incremented session version for", user.id);
+		},
+		linkAccount: async ({ user, account }) => {
+			if (!user?.id || !account) return
+			
+			console.log(`Conta ${account.provider} vinculada ao usuário ${user.id}`);
+			
+			// Atualizar a sessão para refletir a nova vinculação
+			await prisma.user.update({
+				where: { id: user.id },
+				data: { sessionVersion: { increment: 1 } }
+			});
 		},
 	},
 	secret: process.env.AUTH_SECRET,

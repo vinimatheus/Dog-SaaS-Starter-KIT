@@ -1,9 +1,11 @@
 "use client"
 
 import * as React from "react"
+import { memo, useCallback, useMemo } from "react"
 import { ChevronsUpDown, Plus, Building2, Check } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { startTransition } from "react"
 
 import {
   DropdownMenu,
@@ -27,116 +29,153 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { CreateOrganizationForm } from "@/components/organization/create-organization-form"
+import { useOrganizations } from "@/hooks/useOrganizations"
 
-type Organization = {
+interface Organization {
   id: string
-    name: string
   uniqueId: string
+  name: string
 }
 
+// Componente memoizado para o item da organização na lista
+const OrganizationItem = memo(function OrganizationItem({
+  org,
+  isActive,
+  onSelect
+}: {
+  org: Organization,
+  isActive: boolean,
+  onSelect: (org: Organization) => void
+}) {
+  const handleClick = useCallback(() => {
+    onSelect(org);
+  }, [org, onSelect]);
+
+  return (
+    <DropdownMenuItem
+      key={org.id}
+      onClick={handleClick}
+      className={cn(
+        "gap-2 p-2",
+        isActive && "bg-accent"
+      )}
+    >
+      <div className="flex size-6 items-center justify-center rounded-md border">
+        <Building2 className="size-3.5 shrink-0" />
+      </div>
+      <span className="flex-1">{org.name}</span>
+      <Check
+        className={cn(
+          "ml-auto h-4 w-4",
+          isActive ? "opacity-100" : "opacity-0"
+        )}
+      />
+    </DropdownMenuItem>
+  );
+});
+
+// Componente principal para o seletor de organizações
 export function TeamSwitcher() {
   const { isMobile } = useSidebar()
   const router = useRouter()
   const pathname = usePathname()
-  const currentOrgUniqueId = pathname.split("/")[1]
-  const [organizations, setOrganizations] = React.useState<Organization[]>([])
+  const currentOrgUniqueId = useMemo(() => pathname.split("/")[1], [pathname])
   const [dialogOpen, setDialogOpen] = React.useState(false)
-  const [open, setOpen] = React.useState(false)
+  const [dropdownOpen, setDropdownOpen] = React.useState(false)
 
-  const loadOrganizations = async () => {
-    const res = await fetch("/api/organizations")
-    const data: Organization[] = await res.json()
-    setOrganizations(data)
-  }
+  const { organizations, loading, error, refetch } = useOrganizations()
 
-  React.useEffect(() => {
-    loadOrganizations()
-  }, [])
+  // Memoriza a organização atual para evitar re-renderizações
+  const currentOrg = useMemo(() => 
+    organizations.find((org) => org.uniqueId === currentOrgUniqueId),
+    [organizations, currentOrgUniqueId]
+  );
 
-  const handleCreateOrganization = () => {
-    setOpen(false)
-    setTimeout(() => {
+  // Callbacks memoizados para evitar recriações de funções
+  const handleCreateOrganization = useCallback(() => {
+    setDropdownOpen(false)
+    startTransition(() => {
       setDialogOpen(true)
-    }, 100)
-  }
+    })
+  }, []);
 
-  const handleSuccess = async () => {
+  const handleSuccess = useCallback(async () => {
     setDialogOpen(false)
-    await loadOrganizations()
-  }
+    await refetch()
+  }, [refetch]);
 
-  const handleSelectOrganization = async (org: Organization) => {
-    router.push(`/${org.uniqueId}`)
-    setOpen(false)
-  }
+  const handleSelectOrganization = useCallback((org: Organization) => {
+    startTransition(() => {
+      router.push(`/${org.uniqueId}`)
+    })
+    setDropdownOpen(false)
+  }, [router]);
 
-  const currentOrg = organizations.find((o) => o.uniqueId === currentOrgUniqueId)
-
+  // Renderização condicional para a lista de organizações
+  const renderOrganizationList = useCallback(() => {
+    if (loading) {
+      return <DropdownMenuItem disabled>Carregando...</DropdownMenuItem>
+    }
+    
+    if (error) {
+      return <DropdownMenuItem disabled>Erro ao carregar</DropdownMenuItem>
+    }
+    
+    if (organizations.length === 0) {
+      return (
+        <DropdownMenuItem disabled className="text-muted-foreground">
+          Nenhuma organização encontrada
+        </DropdownMenuItem>
+      )
+    }
+    
+    return organizations.map((org) => (
+      <OrganizationItem
+        key={org.id}
+        org={org}
+        isActive={currentOrgUniqueId === org.uniqueId}
+        onSelect={handleSelectOrganization}
+      />
+    ))
+  }, [loading, error, organizations, currentOrgUniqueId, handleSelectOrganization]);
+  
   return (
     <>
-    <SidebarMenu>
-      <SidebarMenuItem>
-          <DropdownMenu open={open} onOpenChange={setOpen}>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+            <DropdownMenuTrigger asChild>
+              <SidebarMenuButton
+                size="lg"
                 className={cn(
                   "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
                   currentOrg && "bg-sidebar-accent/50"
                 )}
-            >
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+              >
+                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                   <Building2 className="size-4" />
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">
                     {currentOrg?.name || "Selecionar Organização"}
                   </span>
                   <span className="truncate text-xs">
                     {currentOrg ? "Organização" : "Nenhuma selecionada"}
                   </span>
-              </div>
-              <ChevronsUpDown className="ml-auto" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            align="start"
-            side={isMobile ? "bottom" : "right"}
-            sideOffset={4}
-          >
-            <DropdownMenuLabel className="text-muted-foreground text-xs">
+                </div>
+                <ChevronsUpDown className="ml-auto" />
+              </SidebarMenuButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+              align="start"
+              side={isMobile ? "bottom" : "right"}
+              sideOffset={4}
+            >
+              <DropdownMenuLabel className="text-muted-foreground text-xs">
                 Organizações
-            </DropdownMenuLabel>
-              {organizations.length > 0 ? (
-                organizations.map((org) => (
-                  <DropdownMenuItem
-                    key={org.id}
-                    onClick={() => handleSelectOrganization(org)}
-                    className={cn(
-                      "gap-2 p-2",
-                      currentOrgUniqueId === org.uniqueId && "bg-accent"
-                    )}
-                  >
-                    <div className="flex size-6 items-center justify-center rounded-md border">
-                      <Building2 className="size-3.5 shrink-0" />
-                    </div>
-                    <span className="flex-1">{org.name}</span>
-                    <Check
-                      className={cn(
-                        "ml-auto h-4 w-4",
-                        currentOrgUniqueId === org.uniqueId
-                          ? "opacity-100"
-                          : "opacity-0"
-                      )}
-                    />
-                  </DropdownMenuItem>
-                ))
-              ) : (
-                <DropdownMenuItem disabled className="text-muted-foreground">
-                  Nenhuma organização encontrada
-                </DropdownMenuItem>
-              )}
+              </DropdownMenuLabel>
+              {renderOrganizationList()}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleCreateOrganization}
@@ -148,11 +187,11 @@ export function TeamSwitcher() {
                 <div className="text-muted-foreground font-medium">
                   Criar Organização
                 </div>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
-    </SidebarMenu>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SidebarMenuItem>
+      </SidebarMenu>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>

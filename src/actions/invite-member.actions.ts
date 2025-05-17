@@ -6,19 +6,40 @@ import { Resend } from "resend";
 import { revalidatePath } from "next/cache";
 import { addDays } from "date-fns";
 import { Role, InviteStatus } from "@prisma/client";
+import { z } from "zod";
+import { randomUUID } from "crypto";
+import { unstable_cache } from "next/cache";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Schema de validação para convites
+const InviteSchema = z.object({
+  email: z.string().email("Email inválido").toLowerCase(),
+  organizationId: z.string().uuid("ID de organização inválido"),
+  role: z.enum(["OWNER", "ADMIN", "USER"], {
+    invalid_type_error: "Cargo inválido",
+  }).default("USER"),
+});
 
 interface InviteResult {
   success: boolean;
   error?: string;
   inviteId?: string;
-  }
+}
 
 interface ManageInviteResult {
   success: boolean;
   error?: string;
   status?: InviteStatus;
+}
+
+// Função segura para log sem expor dados sensíveis
+function logError(context: string, error: unknown, userId?: string | Promise<string | undefined>) {
+  const userIdStr = userId && typeof userId === 'string' ? `(User: ${userId.slice(0, 8)}...)` : '';
+  console.error(
+    `[${context}] Erro: ${error instanceof Error ? error.message : "Erro desconhecido"} ${userIdStr}`
+  );
+  // Em produção, enviar para serviço de log estruturado
 }
 
 async function sendInviteEmail(invite: { id: string; email: string }, organization: { name: string }) {
@@ -61,31 +82,36 @@ async function sendInviteEmail(invite: { id: string; email: string }, organizati
     });
     return true;
   } catch (error) {
-    console.error("Erro ao enviar email:", error);
+    logError("SendInviteEmail", error);
     return false;
   }
 }
 
-async function checkInvitePermissions(userId: string, organizationId: string) {
-  const userOrg = await prisma.user_Organization.findFirst({
-    where: {
-      user_id: userId,
-      organization_id: organizationId,
-      role: {
-        in: ["OWNER", "ADMIN"],
+// Função memoizada para verificar permissões
+const checkInvitePermissions = unstable_cache(
+  async (userId: string, organizationId: string) => {
+    const userOrg = await prisma.user_Organization.findFirst({
+      where: {
+        user_id: userId,
+        organization_id: organizationId,
+        role: {
+          in: ["OWNER", "ADMIN"],
+        },
       },
-    },
-    include: {
-      organization: true,
-    },
-  });
+      include: {
+        organization: true,
+      },
+    });
 
-  if (!userOrg) {
-    throw new Error("Você não tem permissão para gerenciar convites");
-  }
+    if (!userOrg) {
+      throw new Error("Você não tem permissão para gerenciar convites");
+    }
 
-  return userOrg;
-}
+    return userOrg;
+  },
+  ["invite-permissions"],
+  { revalidate: 60 } // Cache por 1 minuto
+);
 
 export async function resendInviteAction(inviteId: string): Promise<ManageInviteResult> {
   try {
@@ -94,6 +120,14 @@ export async function resendInviteAction(inviteId: string): Promise<ManageInvite
       return {
         success: false,
         error: "Você precisa estar logado para reenviar convites",
+      };
+    }
+
+    // Validar ID do convite
+    if (!inviteId || typeof inviteId !== 'string' || inviteId.trim() === '') {
+      return {
+        success: false,
+        error: "ID do convite inválido",
       };
     }
 
@@ -111,56 +145,59 @@ export async function resendInviteAction(inviteId: string): Promise<ManageInvite
       };
     }
 
-    
-    await checkInvitePermissions(session.user.id, invite.organization_id);
-
-    
-    if (invite.status !== "PENDING") {
-      return {
-        success: false,
-        error: `Este convite não pode ser reenviado pois está ${invite.status === "ACCEPTED" ? "aceito" : invite.status === "REJECTED" ? "rejeitado" : "expirado"}`,
-        status: invite.status,
-      };
-    }
-
-    
-    if (invite.expires_at < new Date()) {
-      await prisma.invite.update({
+    // Usar transação para garantir consistência
+    return await prisma.$transaction(async (tx) => {
+      // Verificar permissões
+      await checkInvitePermissions(session.user.id, invite.organization_id);
+      
+      // Verificar status do convite
+      if (invite.status !== "PENDING") {
+        return {
+          success: false,
+          error: `Este convite não pode ser reenviado pois está ${invite.status === "ACCEPTED" ? "aceito" : invite.status === "REJECTED" ? "rejeitado" : "expirado"}`,
+          status: invite.status,
+        };
+      }
+      
+      // Verificar expiração
+      if (invite.expires_at < new Date()) {
+        await tx.invite.update({
+          where: { id: inviteId },
+          data: { status: "EXPIRED" },
+        });
+        return {
+          success: false,
+          error: "Este convite expirou e não pode ser reenviado",
+          status: "EXPIRED",
+        };
+      }
+      
+      // Enviar email
+      const emailSent = await sendInviteEmail(invite, invite.organization);
+      if (!emailSent) {
+        return {
+          success: false,
+          error: "Erro ao reenviar o email do convite",
+        };
+      }
+      
+      // Atualizar convite
+      await tx.invite.update({
         where: { id: inviteId },
-        data: { status: "EXPIRED" },
+        data: {
+          expires_at: addDays(new Date(), 7),
+          updated_at: new Date(),
+        },
       });
-      return {
-        success: false,
-        error: "Este convite expirou e não pode ser reenviado",
-        status: "EXPIRED",
-      };
-    }
 
-    
-    const emailSent = await sendInviteEmail(invite, invite.organization);
-    if (!emailSent) {
+      revalidatePath(`/${invite.organization.uniqueId}`);
       return {
-        success: false,
-        error: "Erro ao reenviar o email do convite",
+        success: true,
+        status: "PENDING",
       };
-    }
-
-    
-    await prisma.invite.update({
-      where: { id: inviteId },
-      data: {
-        expires_at: addDays(new Date(), 7),
-        updated_at: new Date(),
-      },
     });
-
-    revalidatePath(`/${invite.organization.uniqueId}`);
-    return {
-      success: true,
-      status: "PENDING",
-    };
   } catch (error) {
-    console.error("Erro ao reenviar convite:", error);
+    logError("ResendInvite", error, auth().then(s => s?.user?.id).catch(() => undefined));
     return {
       success: false,
       error: error instanceof Error ? error.message : "Erro ao reenviar convite",
@@ -178,6 +215,14 @@ export async function deleteInviteAction(inviteId: string): Promise<ManageInvite
       };
     }
 
+    // Validar ID do convite
+    if (!inviteId || typeof inviteId !== 'string' || inviteId.trim() === '') {
+      return {
+        success: false,
+        error: "ID do convite inválido",
+      };
+    }
+
     const invite = await prisma.invite.findUnique({
       where: { id: inviteId },
       include: {
@@ -192,29 +237,32 @@ export async function deleteInviteAction(inviteId: string): Promise<ManageInvite
       };
     }
 
-    
-    await checkInvitePermissions(session.user.id, invite.organization_id);
+    // Usar transação para garantir consistência
+    return await prisma.$transaction(async (tx) => {
+      // Verificar permissões
+      await checkInvitePermissions(session.user.id, invite.organization_id);
+      
+      // Verificar status
+      if (invite.status === "ACCEPTED") {
+        return {
+          success: false,
+          error: "Não é possível excluir um convite que já foi aceito",
+          status: invite.status,
+        };
+      }
+      
+      // Excluir convite
+      await tx.invite.delete({
+        where: { id: inviteId },
+      });
 
-    
-    if (invite.status === "ACCEPTED") {
+      revalidatePath(`/${invite.organization.uniqueId}`);
       return {
-        success: false,
-        error: "Não é possível excluir um convite que já foi aceito",
-        status: invite.status,
+        success: true,
       };
-    }
-
-    
-    await prisma.invite.delete({
-      where: { id: inviteId },
     });
-
-    revalidatePath(`/${invite.organization.uniqueId}`);
-    return {
-      success: true,
-    };
   } catch (error) {
-    console.error("Erro ao excluir convite:", error);
+    logError("DeleteInvite", error, auth().then(s => s?.user?.id).catch(() => undefined));
     return {
       success: false,
       error: error instanceof Error ? error.message : "Erro ao excluir convite",
@@ -233,113 +281,131 @@ export async function inviteMemberAction(formData: FormData): Promise<InviteResu
       };
     }
 
-    const email = formData.get("email") as string;
-    const organizationId = formData.get("organizationId") as string;
-    const role = (formData.get("role") as Role) || "USER";
+    // Extrair e validar dados
+    const rawData = {
+      email: (formData.get("email") as string || "").trim().toLowerCase(),
+      organizationId: formData.get("organizationId") as string,
+      role: (formData.get("role") as Role) || "USER",
+    };
 
-    if (!email || !organizationId) {
+    // Validar os dados com zod
+    const result = InviteSchema.safeParse(rawData);
+    if (!result.success) {
       return {
         success: false,
-        error: "Email e organização são obrigatórios",
+        error: result.error.errors[0].message,
       };
     }
 
-    if (session.user.email?.toLowerCase() === email.toLowerCase()) {
+    const { email, organizationId, role } = result.data;
+
+    // Verificar se não está convidando a si mesmo
+    if (session.user.email?.toLowerCase() === email) {
       return {
         success: false,
         error: "Você não pode convidar a si mesmo",
       };
     }
     
-    const [organization, userOrg, existingInvite, existingMember] = await Promise.all([
-      prisma.organization.findUnique({
-        where: { id: organizationId },
-      }),
-      prisma.user_Organization.findFirst({
-        where: {
-          user_id: session.user.id,
-          organization_id: organizationId,
-          role: {
-            in: ["OWNER", "ADMIN"],
+    // Usar transação para garantir consistência
+    return await prisma.$transaction(async (tx) => {
+      // Buscar dados necessários em paralelo
+      const [organization, userOrg, existingInvite, existingMember] = await Promise.all([
+        tx.organization.findUnique({
+          where: { id: organizationId },
+        }),
+        tx.user_Organization.findFirst({
+          where: {
+            user_id: session.user.id,
+            organization_id: organizationId,
+            role: {
+              in: ["OWNER", "ADMIN"],
+            },
           },
-        },
-      }),
-      prisma.invite.findFirst({
-        where: {
-          AND: [
-            { email },
-            { organization_id: organizationId },
-            { status: "PENDING" },
-          ],
-        },
-      }),
-      prisma.user_Organization.findFirst({
-        where: {
-          organization_id: organizationId,
-          user: {
-            email,
+        }),
+        tx.invite.findFirst({
+          where: {
+            AND: [
+              { email },
+              { organization_id: organizationId },
+              { status: "PENDING" },
+            ],
           },
+        }),
+        tx.user_Organization.findFirst({
+          where: {
+            organization_id: organizationId,
+            user: {
+              email,
+            },
+          },
+        }),
+      ]);
+      
+      // Validar resultados
+      if (!organization) {
+        return {
+          success: false,
+          error: "Organização não encontrada",
+        };
+      }
+
+      if (!userOrg) {
+        return {
+          success: false,
+          error: "Você não tem permissão para convidar membros",
+        };
+      }
+
+      if (existingInvite) {
+        return {
+          success: false,
+          error: "Já existe um convite pendente para este email",
+        };
+      }
+
+      if (existingMember) {
+        return {
+          success: false,
+          error: "Este usuário já é membro da organização",
+        };
+      }
+      
+      // Criar convite com ID seguro
+      const invite = await tx.invite.create({
+        data: {
+          id: randomUUID(), // Usar UUID para geração segura de token
+          email,
+          organization_id: organizationId,
+          invited_by_id: session.user.id,
+          role,
+          expires_at: addDays(new Date(), 7), 
         },
-      }),
-    ]);
-    
-    if (!organization) {
-      return {
-        success: false,
-        error: "Organização não encontrada",
-      };
-    }
-
-    if (!userOrg) {
-      return {
-        success: false,
-        error: "Você não tem permissão para convidar membros",
-      };
-    }
-
-    if (existingInvite) {
-      return {
-        success: false,
-        error: "Já existe um convite pendente para este email",
-      };
-    }
-
-    if (existingMember) {
-      return {
-        success: false,
-        error: "Este usuário já é membro da organização",
-      };
-    }
-    
-    const invite = await prisma.invite.create({
-      data: {
-        email,
-        organization_id: organizationId,
-        invited_by_id: session.user.id,
-        role,
-        expires_at: addDays(new Date(), 7), 
-      },
-    });
-    
-    const emailSent = await sendInviteEmail(invite, organization);
-    if (!emailSent) {
-      await prisma.invite.update({
-        where: { id: invite.id },
-        data: { status: "EXPIRED" },
       });
-      return {
-        success: false,
-        error: "Erro ao enviar o email do convite",
-      };
-    }
+      
+      // Enviar email
+      const emailSent = await sendInviteEmail(invite, organization);
+      if (!emailSent) {
+        // Marcar como expirado se email falhar
+        await tx.invite.update({
+          where: { id: invite.id },
+          data: { status: "EXPIRED" },
+        });
+        return {
+          success: false,
+          error: "Erro ao enviar o email do convite",
+        };
+      }
 
-    await revalidatePath(`/${organization.uniqueId}`);
-    return {
-      success: true,
-      inviteId: invite.id,
-    };
+      // Limpar cache
+      revalidatePath(`/${organization.uniqueId}`);
+      return {
+        success: true,
+        inviteId: invite.id,
+      };
+    });
   } catch (error) {
-    console.error("Erro ao processar convite:", error);
+    logError("InviteMember", error, auth().then(s => s?.user?.id).catch(() => undefined));
     return {
       success: false,
       error: error instanceof Error ? error.message : "Erro ao processar convite",

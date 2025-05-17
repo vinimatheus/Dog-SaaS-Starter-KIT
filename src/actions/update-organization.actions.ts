@@ -1,41 +1,105 @@
-"use server";
+"use server"
 
-import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { auth } from "@/auth"
+import { prisma } from "@/lib/prisma"
+import { revalidatePath } from "next/cache"
+import { z } from "zod"
+import { unstable_cache } from "next/cache"
 
-export const updateOrganizationAction = async ({ name }: { name: string }) => {
-	const session = await auth();
+// Schema de validação para atualização de organização
+const UpdateOrganizationSchema = z.object({
+  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100, "Nome deve ter no máximo 100 caracteres"),
+  uniqueOrgId: z.string().min(1, "ID da organização é obrigatório"),
+})
 
-	if (!session?.user?.id) {
-		redirect("/");
-	}
+interface UpdateOrganizationResult {
+  success: boolean
+  error?: string
+}
 
-	const uniqueOrganizationId = (await headers()).get("x-unique-org-id");
+// Função segura para log sem expor dados sensíveis
+function logError(context: string, error: unknown, userId?: string | Promise<string | undefined>) {
+  const userIdStr = userId && typeof userId === 'string' ? `(User: ${userId.slice(0, 8)}...)` : '';
+  console.error(
+    `[${context}] Erro: ${error instanceof Error ? error.message : "Erro desconhecido"} ${userIdStr}`
+  )
+  // Em produção, enviar para serviço de log estruturado
+}
 
-	if (!uniqueOrganizationId) {
-		redirect("/");
-	}
+// Função memoizada para verificar acesso à organização
+const checkOrganizationAccess = unstable_cache(
+  async (uniqueOrgId: string, userId: string) => {
+    const organization = await prisma.organization.findFirst({
+      where: {
+        uniqueId: uniqueOrgId,
+        User_Organization: {
+          some: { 
+            user_id: userId,
+            role: {
+              in: ["OWNER", "ADMIN"]
+            }
+          },
+        },
+      },
+    })
+    
+    if (!organization) {
+      throw new Error("Organização não encontrada ou você não tem permissão para editá-la.")
+    }
+    
+    return organization
+  },
+  ["organization-access"],
+  { revalidate: 60 } // Cache por 1 minuto
+)
 
-	const organization = await prisma.organization.findUnique({
-		where: {
-			uniqueId: uniqueOrganizationId,
-			User_Organization: { some: { user_id: session.user.id } },
-		},
-	});
+export const updateOrganizationAction = async (
+  formData: FormData
+): Promise<UpdateOrganizationResult> => {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return { success: false, error: "Autenticação necessária" }
+    }
 
-	if (!organization) {
-		throw new Error("Organization not found");
-	}
+    // Validar dados do formulário
+    const validatedData = UpdateOrganizationSchema.safeParse({
+      name: formData.get("name"),
+      uniqueOrgId: formData.get("uniqueOrgId"),
+    })
 
-	const updatedOrg = await prisma.organization.update({
-		where: { id: organization.id },
-		data: { name },
-	});
+    if (!validatedData.success) {
+      return { 
+        success: false, 
+        error: validatedData.error.errors[0].message 
+      }
+    }
 
-	revalidatePath(`/${uniqueOrganizationId}`);
+    const { name, uniqueOrgId } = validatedData.data
 
-	return updatedOrg;
-};
+    // Usar transação para garantir consistência
+    await prisma.$transaction(async (tx) => {
+      // Verificar acesso
+      const organization = await checkOrganizationAccess(uniqueOrgId, session.user.id)
+      
+      // Atualizar informações da organização
+      await tx.organization.update({
+        where: { id: organization.id },
+        data: { name },
+      })
+    })
+
+    // Limpar cache após atualização
+    revalidatePath(`/${uniqueOrgId}`)
+    
+    return { success: true }
+  } catch (error) {
+    const userId = await auth().then(s => s?.user?.id).catch(() => undefined)
+    logError("UpdateOrganization", error, userId)
+    
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Erro ao atualizar organização" 
+    }
+  }
+}

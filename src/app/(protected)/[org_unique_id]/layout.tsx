@@ -15,6 +15,7 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { unstable_cache } from "next/cache";
 
 export type AuthenticatedTeamsLayoutProps = {
 	children: React.ReactNode;
@@ -23,16 +24,37 @@ export type AuthenticatedTeamsLayoutProps = {
 	}>;
 };
 
+// Duração do cache de 5 minutos para reduzir consultas ao banco
+export const revalidate = 300;
+
+// Função memoizada para buscar a organização
+const getOrganization = unstable_cache(
+	async (uniqueId: string, userId: string) => {
+		return prisma.organization.findUnique({
+			where: {
+				uniqueId,
+				User_Organization: {
+					some: {
+						user_id: userId,
+					},
+				},
+			},
+		});
+	},
+	["organization-access"],
+	{ revalidate }
+);
+
 export default async function AuthenticatedOrganizationLayout({
 	children,
 	params,
 }: AuthenticatedTeamsLayoutProps) {
-	const [session, cookieStore] = await Promise.all([
+	const [session, cookieStore, { org_unique_id }] = await Promise.all([
 		auth(),
-		cookies()
+		cookies(),
+		params
 	]);
 
-	const { org_unique_id } = await params;
 	const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
 
 	if (!session?.user) {
@@ -40,17 +62,7 @@ export default async function AuthenticatedOrganizationLayout({
 	}
 
 	const userId = session.user.id;
-
-	const organization = await prisma.organization.findUnique({
-		where: {
-			uniqueId: org_unique_id,
-			User_Organization: {
-				some: {
-					user_id: userId,
-				},
-			},
-		},
-	});
+	const organization = await getOrganization(org_unique_id, userId);
 
 	if (!organization) {
 		redirect("/organizations");

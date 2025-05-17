@@ -1,22 +1,28 @@
 import { LucideIcon, LayoutDashboard, Settings } from "lucide-react"
 
-export type Route = {
+export interface RouteItem {
+  title: string
+  url: string
+}
+
+export interface Route {
   title: string
   url: string
   icon: LucideIcon
   isActive?: boolean
-  items?: {
-    title: string
-    url: string
-  }[]
+  items?: RouteItem[]
 }
 
-export type Project = {
+export interface Project {
   name: string
   url: string
   icon: LucideIcon
 }
 
+/**
+ * Base routes configuration for the application.
+ * These routes will be transformed with organization-specific URLs.
+ */
 export const routes: Route[] = [
   {
     title: "Dashboard",
@@ -28,7 +34,7 @@ export const routes: Route[] = [
         title: "Visão Geral",
         url: "",
       },
-      ],
+    ],
   },
   {
     title: "Configurações",
@@ -48,21 +54,38 @@ export const routes: Route[] = [
   }
 ]
 
-
-export const getOrgRoute = (orgUniqueId: string, path: string) => {
+/**
+ * Creates an organization-specific URL with the given path
+ */
+export const getOrgRoute = (orgUniqueId: string, path: string): string => {
   return `/${orgUniqueId}${path}`
 }
 
+/**
+ * Normalizes a path to ensure proper formatting
+ */
+export const normalizePath = (basePath: string, itemPath: string): string => {
+  if (basePath === "") {
+    return itemPath
+  }
+  
+  if (basePath !== "" && itemPath.startsWith("/")) {
+    return `${basePath}${itemPath}`
+  }
+  
+  return `${basePath}/${itemPath.replace(/^\//, "")}`
+}
 
+/**
+ * Transforms base routes to organization-specific routes
+ */
 export const getOrganizationRoutes = (orgUniqueId: string): Route[] => {
   return routes.map(route => ({
     ...route,
     url: getOrgRoute(orgUniqueId, route.url),
     items: route.items?.map(item => ({
       ...item,
-      url: getOrgRoute(orgUniqueId, route.url !== "" && item.url.startsWith("/") 
-        ? `${route.url}${item.url}` 
-        : `${route.url}/${item.url.replace(/^\//, "")}`),
+      url: getOrgRoute(orgUniqueId, normalizePath(route.url, item.url)),
     })),
   }))
 } 
