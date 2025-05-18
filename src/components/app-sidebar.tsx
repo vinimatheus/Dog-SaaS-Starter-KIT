@@ -18,7 +18,7 @@ import { useOrganization } from "@/contexts/organization-context"
 import { getOrganizationRoutes } from "@/config/routes"
 import { useMemo, memo } from "react"
 
-// Componente para quando não há organização selecionada
+
 const NoOrganizationSidebar = memo(function NoOrganizationSidebar({ 
   user 
 }: { 
@@ -54,7 +54,7 @@ export function AppSidebar() {
   const { organization } = useOrganization()
   const { data: session } = useSession()
   
-  // Memoiza a lista de rotas para evitar recálculos
+  
   const routes = useMemo(() => 
     organization ? getOrganizationRoutes(organization.uniqueId) : [],
     [organization]

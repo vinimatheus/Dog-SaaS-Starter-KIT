@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/sidebar"
 import type { Route, RouteItem } from "@/config/routes"
 
-// Componente memoizado para menu items
+
 const MenuItem = memo(function MenuItem({ 
   route, 
   pathname 
@@ -35,7 +35,7 @@ const MenuItem = memo(function MenuItem({
   const { state, setOpen } = useSidebar();
   
   if (!hasSubItems) {
-    // Se não tiver sub-itens, renderiza apenas o botão
+    
     return (
       <SidebarMenuItem key={route.url}>
         <SidebarMenuButton
@@ -52,7 +52,7 @@ const MenuItem = memo(function MenuItem({
     );
   }
   
-  // Se tiver sub-itens, usa o Collapsible
+  
   return (
     <Collapsible
       key={route.title}
@@ -65,7 +65,7 @@ const MenuItem = memo(function MenuItem({
           <SidebarMenuButton 
             tooltip={route.title}
             onClick={() => {
-              // Se a sidebar estiver recolhida, expande ela primeiro
+              
               if (state === "collapsed") {
                 setOpen(true);
               }
@@ -92,7 +92,7 @@ const MenuItem = memo(function MenuItem({
   );
 });
 
-// Componente memoizado para sub-menu items
+
 const SubMenuItem = memo(function SubMenuItem({ 
   item, 
   pathname 

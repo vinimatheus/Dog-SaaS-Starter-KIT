@@ -30,13 +30,13 @@ export function OrganizationList({ organizations: initialOrgs, currentOrgId }: O
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
-		// Se não recebemos organizações iniciais, buscamos da API
+		
 		if (!initialOrgs) {
 			fetchOrganizations();
 		}
 	}, [initialOrgs]);
 
-	// Função para buscar organizações da API
+	
 	const fetchOrganizations = async () => {
 		try {
 			setLoading(true);
@@ -51,7 +51,7 @@ export function OrganizationList({ organizations: initialOrgs, currentOrgId }: O
 		}
 	};
 
-	// Se não temos organizações e estamos carregando, exibir estado de carregamento
+	
 	if (loading && organizations.length === 0) {
 		return (
 			<Button variant="ghost" className="flex items-center justify-between gap-2 px-2" disabled>
@@ -61,7 +61,7 @@ export function OrganizationList({ organizations: initialOrgs, currentOrgId }: O
 		);
 	}
 
-	// Se tivemos um erro e não temos organizações, exibir estado de erro
+	
 	if (error && organizations.length === 0) {
 		return (
 			<Button variant="ghost" className="flex items-center justify-between gap-2 px-2" disabled>
@@ -71,7 +71,7 @@ export function OrganizationList({ organizations: initialOrgs, currentOrgId }: O
 		);
 	}
 
-	// Se não temos organizações, exibir estado vazio
+	
 	if (organizations.length === 0) {
 		return (
 			<Button variant="ghost" className="flex items-center justify-between gap-2 px-2" disabled>

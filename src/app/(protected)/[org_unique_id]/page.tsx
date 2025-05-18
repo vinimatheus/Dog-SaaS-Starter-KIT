@@ -10,7 +10,6 @@ import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
 import { PageLayout } from "@/components/page-layout";
 
-// Componentes para carregamento
 const LoadingCard = () => (
 	<Card className="animate-pulse">
 		<CardHeader className="space-y-0 pb-2">
@@ -29,10 +28,8 @@ interface MetadataProps {
 	}>;
 }
 
-// Cache da metadata para reduzir requisições
 export const revalidate = 300; // 5 minutos
 
-// Função memoizada para buscar metadata da organização
 const getOrganizationForMetadata = unstable_cache(
 	async (org_unique_id: string) => {
 		return prisma.organization.findUnique({
@@ -61,7 +58,6 @@ interface OrganizationPageProps {
 	}>;
 }
 
-// Função memoizada para buscar dados completos da organização
 const getOrganizationDashboardData = unstable_cache(
 	async (org_unique_id: string, userId: string) => {
 		const organization = await prisma.organization.findUnique({
@@ -114,7 +110,6 @@ const getOrganizationDashboardData = unstable_cache(
 	{ revalidate }
 );
 
-// Componente para estatísticas da organização
 function OrganizationStats({ stats }: { 
 	stats: { 
 		totalMembers: number;

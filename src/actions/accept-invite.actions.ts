@@ -7,7 +7,6 @@ import { Role, Prisma } from "@prisma/client"
 import { z } from "zod"
 import { unstable_cache } from "next/cache"
 
-// Schema de validação para convites
 const InviteTokenSchema = z.object({
   inviteId: z.string().uuid("ID de convite inválido"),
 })
@@ -24,19 +23,15 @@ const statusMessages: Record<string, string> = {
   EXPIRED: "expirado",
 }
 
-// Função segura para log sem expor dados sensíveis
 function logError(context: string, error: unknown, userId?: string | Promise<string | undefined>) {
   const userIdStr = userId && typeof userId === 'string' ? `(User: ${userId.slice(0, 8)}...)` : '';
   console.error(
     `[${context}] Erro: ${error instanceof Error ? error.message : "Erro desconhecido"} ${userIdStr}`
   )
-  // Em produção, enviar para serviço de log estruturado
 }
 
-// Tipo para o resultado do convite
 type InviteWithOrganization = NonNullable<Awaited<ReturnType<typeof getInvite>>>
 
-// Função memoizada para buscar convite com cache
 const getInvite = unstable_cache(
   async (inviteId: string) => {
     return prisma.invite.findUnique({
@@ -45,10 +40,9 @@ const getInvite = unstable_cache(
     })
   },
   ["invite-details"],
-  { revalidate: 10 } // Cache por 10 segundos
+  { revalidate: 10 } 
 )
 
-// Validação de convite extraída em função pura para facilitar testes
 function validateInvite(invite: InviteWithOrganization | null, userEmail: string): string | null {
   if (!invite) return "Convite não encontrado"
 
@@ -63,7 +57,6 @@ function validateInvite(invite: InviteWithOrganization | null, userEmail: string
   return null
 }
 
-// Função para registrar associação de usuário com organização
 async function registerMembership(
   tx: Prisma.TransactionClient, 
   userId: string, 
@@ -90,7 +83,6 @@ async function registerMembership(
 
 export async function acceptInviteAction(inviteIdRaw: string): Promise<AcceptInviteResult> {
   try {
-    // Validar ID do convite
     const result = InviteTokenSchema.safeParse({ inviteId: inviteIdRaw })
     if (!result.success) {
       return { 
@@ -109,26 +101,20 @@ export async function acceptInviteAction(inviteIdRaw: string): Promise<AcceptInv
       return { success: false, error: "Você precisa estar logado para aceitar convites" }
     }
 
-    // Buscar o convite com cache
     const invite = await getInvite(inviteId)
     
-    // Verificação preliminar do convite
     if (!invite) {
       return { success: false, error: "Convite não encontrado" }
     }
 
-    // Usar transação para garantir consistência
     return await prisma.$transaction(async (tx) => {
-      // Buscar o convite novamente dentro da transação para garantir dados atualizados
       const freshInvite = await tx.invite.findUnique({
         where: { id: inviteId },
         include: { organization: true },
       })
 
-      // Validar o convite
       const validationError = validateInvite(freshInvite, userEmail)
       if (validationError) {
-        // Se expirou, atualizar status
         if (validationError === "Este convite expirou" && freshInvite) {
           await tx.invite.update({
             where: { id: inviteId },
@@ -138,24 +124,20 @@ export async function acceptInviteAction(inviteIdRaw: string): Promise<AcceptInv
         return { success: false, error: validationError }
       }
 
-      // Garantir que freshInvite não é nulo neste ponto
       if (!freshInvite) {
         return { success: false, error: "Convite não encontrado" }
       }
 
-      // Registrar associação
       const membershipError = await registerMembership(tx, userId, freshInvite.organization.id, freshInvite.role as Role)
       if (membershipError) {
         return { success: false, error: membershipError }
       }
 
-      // Marcar convite como aceito
       await tx.invite.update({
         where: { id: inviteId },
         data: { status: "ACCEPTED" },
       })
 
-      // Limpar cache
       revalidatePath("/")
       revalidatePath(`/${freshInvite.organization.uniqueId}`)
       revalidatePath("/organizations")

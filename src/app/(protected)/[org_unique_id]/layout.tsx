@@ -17,10 +17,8 @@ export type AuthenticatedTeamsLayoutProps = {
 	}>;
 };
 
-// Duração do cache de 5 minutos para reduzir consultas ao banco
 export const revalidate = 300;
 
-// Função memoizada para buscar a organização
 const getOrganization = unstable_cache(
 	async (uniqueId: string, userId: string) => {
 		return prisma.organization.findUnique({

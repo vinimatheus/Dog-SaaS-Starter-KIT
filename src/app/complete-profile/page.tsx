@@ -19,17 +19,16 @@ export default async function CompleteProfilePage({
   const session = await auth();
   const params = await searchParams;
 
-  // Se não estiver logado, redireciona para login
+  
   if (!session?.user?.id) {
     redirect("/login");
   }
 
-  // Se já tiver nome, não precisa completar o perfil
   if (session.user.name) {
     redirect("/organizations");
   }
 
-  // Obter a URL de retorno
+  
   const returnTo = params.returnTo || "/organizations";
 
   return (

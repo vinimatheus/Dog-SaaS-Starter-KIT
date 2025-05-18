@@ -1,4 +1,4 @@
-// src/hooks/use-organizations.ts
+
 import { useCallback, useEffect, useState } from "react"
 
 type Organization = {

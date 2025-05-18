@@ -6,10 +6,9 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { unstable_cache } from "next/cache"
 
-// Schema de validação para atualização de organização
 const UpdateOrganizationSchema = z.object({
-  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres").max(100, "Nome deve ter no máximo 100 caracteres"),
-  uniqueOrgId: z.string().min(1, "ID da organização é obrigatório"),
+  name: z.string().min(2).max(100),
+  uniqueOrgId: z.string().min(1),
 })
 
 interface UpdateOrganizationResult {
@@ -17,16 +16,13 @@ interface UpdateOrganizationResult {
   error?: string
 }
 
-// Função segura para log sem expor dados sensíveis
 function logError(context: string, error: unknown, userId?: string | Promise<string | undefined>) {
-  const userIdStr = userId && typeof userId === 'string' ? `(User: ${userId.slice(0, 8)}...)` : '';
+  const userIdStr = userId && typeof userId === 'string' ? `(User: ${userId.slice(0, 8)}...)` : ''
   console.error(
     `[${context}] Erro: ${error instanceof Error ? error.message : "Erro desconhecido"} ${userIdStr}`
   )
-  // Em produção, enviar para serviço de log estruturado
 }
 
-// Função memoizada para verificar acesso à organização
 const checkOrganizationAccess = unstable_cache(
   async (uniqueOrgId: string, userId: string) => {
     const organization = await prisma.organization.findFirst({
@@ -50,7 +46,7 @@ const checkOrganizationAccess = unstable_cache(
     return organization
   },
   ["organization-access"],
-  { revalidate: 60 } // Cache por 1 minuto
+  { revalidate: 60 }
 )
 
 export const updateOrganizationAction = async (
@@ -62,7 +58,6 @@ export const updateOrganizationAction = async (
       return { success: false, error: "Autenticação necessária" }
     }
 
-    // Validar dados do formulário
     const validatedData = UpdateOrganizationSchema.safeParse({
       name: formData.get("name"),
       uniqueOrgId: formData.get("uniqueOrgId"),
@@ -77,19 +72,15 @@ export const updateOrganizationAction = async (
 
     const { name, uniqueOrgId } = validatedData.data
 
-    // Usar transação para garantir consistência
     await prisma.$transaction(async (tx) => {
-      // Verificar acesso
       const organization = await checkOrganizationAccess(uniqueOrgId, session.user.id)
       
-      // Atualizar informações da organização
       await tx.organization.update({
         where: { id: organization.id },
         data: { name },
       })
     })
 
-    // Limpar cache após atualização
     revalidatePath(`/${uniqueOrgId}`)
     
     return { success: true }

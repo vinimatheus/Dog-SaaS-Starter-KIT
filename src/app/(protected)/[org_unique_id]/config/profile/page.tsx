@@ -84,7 +84,6 @@ export default async function ProfilePage({
 		redirect("/login");
 	}
 
-	// Obter a lista de provedores vinculados
 	const linkedProviders = user.accounts.map(account => account.provider);
 
 	return (

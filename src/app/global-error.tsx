@@ -11,7 +11,6 @@ export default function GlobalError({
   reset: () => void
 }) {
   useEffect(() => {
-    // Registrar o erro no console ou em um serviço de monitoramento
     console.error('Erro crítico na aplicação:', error)
   }, [error])
 

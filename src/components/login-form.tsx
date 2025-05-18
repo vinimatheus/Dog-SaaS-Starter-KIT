@@ -67,7 +67,6 @@ export function LoginForm({
       return
     }
 
-    // Verificar reCAPTCHA apenas em produção
     if (!isDevelopment && !recaptchaToken) {
       setError("Por favor, complete a verificação reCAPTCHA")
       return
@@ -83,11 +82,9 @@ export function LoginForm({
       
       const callbackUrlObj = new URL("/organizations", window.location.origin)
       
-      // Em produção, adicionamos o token do reCAPTCHA
       if (!isDevelopment && recaptchaToken) {
         callbackUrlObj.searchParams.set("recaptchaToken", recaptchaToken)
       } else if (isDevelopment) {
-        // Em desenvolvimento, adicionamos um token fictício
         callbackUrlObj.searchParams.set("recaptchaToken", "dev-mode-token")
       }
       
@@ -119,7 +116,6 @@ export function LoginForm({
       setError("Erro ao enviar magic link. Tente novamente mais tarde.")
     } finally {
       setIsLoading(false)
-      // Reset reCAPTCHA após envio (apenas em produção)
       if (!isDevelopment) {
         recaptchaRef.current?.reset()
         setRecaptchaToken(null)
@@ -134,7 +130,6 @@ export function LoginForm({
       return
     }
 
-    // Verificar reCAPTCHA apenas em produção
     if (!isDevelopment && !recaptchaToken) {
       setError("Por favor, complete a verificação reCAPTCHA")
       return
@@ -148,11 +143,9 @@ export function LoginForm({
       
       const redirectUrlObj = new URL("/organizations", window.location.origin)
       
-      // Em produção, adicionamos o token do reCAPTCHA
       if (!isDevelopment && recaptchaToken) {
         redirectUrlObj.searchParams.set("recaptchaToken", recaptchaToken)
       } else if (isDevelopment) {
-        // Em desenvolvimento, adicionamos um token fictício
         redirectUrlObj.searchParams.set("recaptchaToken", "dev-mode-token")
       }
       
@@ -168,7 +161,6 @@ export function LoginForm({
       console.error("Erro no login com Google:", error)
       setError("Erro ao fazer login com Google. Tente novamente mais tarde.")
     } finally {
-      // Reset reCAPTCHA (apenas em produção)
       if (!isDevelopment) {
         recaptchaRef.current?.reset()
         setRecaptchaToken(null)
@@ -217,7 +209,6 @@ export function LoginForm({
             )}
           />
 
-          {/* Mostrar reCAPTCHA apenas em produção */}
           {!isDevelopment && (
             <div className="flex flex-col items-center my-4">
               <div className="mb-2 text-sm text-muted-foreground">
@@ -237,7 +228,6 @@ export function LoginForm({
             </div>
           )}
 
-          {/* Mostrar indicador de modo de desenvolvimento */}
           {isDevelopment && (
             <div className="text-center text-sm text-amber-600 bg-amber-50 p-2 rounded-md">
               Modo de desenvolvimento: reCAPTCHA desativado

@@ -6,13 +6,11 @@ interface ProtectedLayoutProps {
 	children: React.ReactNode;
 }
 
-// Aumenta a revalidação para reduzir chamadas ao servidor
-export const revalidate = 3600; // revalida a cada hora
+export const revalidate = 3600
 
 export default async function ProtectedLayout({
 	children,
 }: ProtectedLayoutProps) {
-	// Adiciona cache-control para melhorar performance
 	headers();
 	
 	const session = await auth();

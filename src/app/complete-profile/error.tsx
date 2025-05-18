@@ -14,10 +14,8 @@ export default function CompleteProfileError({
   reset: () => void
 }) {
   useEffect(() => {
-    // Registrar o erro no console ou em um serviço de monitoramento
     console.error('Erro na página de completar perfil:', error)
     
-    // Mostrar notificação de erro
     toast.error('Não foi possível completar o perfil', {
       description: error.message || 'Ocorreu um problema ao processar suas informações.',
     })

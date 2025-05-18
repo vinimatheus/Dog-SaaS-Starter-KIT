@@ -1,45 +1,40 @@
-"use server";
+"use server"
 
-import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
-import { Resend } from "resend";
-import { revalidatePath } from "next/cache";
-import { addDays } from "date-fns";
-import { Role, InviteStatus } from "@prisma/client";
-import { z } from "zod";
-import { randomUUID } from "crypto";
-import { unstable_cache } from "next/cache";
+import { auth } from "@/auth"
+import { prisma } from "@/lib/prisma"
+import { Resend } from "resend"
+import { revalidatePath } from "next/cache"
+import { addDays } from "date-fns"
+import { Role, InviteStatus } from "@prisma/client"
+import { z } from "zod"
+import { randomUUID } from "crypto"
+import { unstable_cache } from "next/cache"
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY)
 
-// Schema de validação para convites
 const InviteSchema = z.object({
-  email: z.string().email("Email inválido").toLowerCase(),
-  organizationId: z.string().uuid("ID de organização inválido"),
-  role: z.enum(["OWNER", "ADMIN", "USER"], {
-    invalid_type_error: "Cargo inválido",
-  }).default("USER"),
-});
+  email: z.string().email().toLowerCase(),
+  organizationId: z.string().uuid(),
+  role: z.enum(["OWNER", "ADMIN", "USER"]).default("USER"),
+})
 
 interface InviteResult {
-  success: boolean;
-  error?: string;
-  inviteId?: string;
+  success: boolean
+  error?: string
+  inviteId?: string
 }
 
 interface ManageInviteResult {
-  success: boolean;
-  error?: string;
-  status?: InviteStatus;
+  success: boolean
+  error?: string
+  status?: InviteStatus
 }
 
-// Função segura para log sem expor dados sensíveis
 function logError(context: string, error: unknown, userId?: string | Promise<string | undefined>) {
-  const userIdStr = userId && typeof userId === 'string' ? `(User: ${userId.slice(0, 8)}...)` : '';
+  const userIdStr = userId && typeof userId === 'string' ? `(User: ${userId.slice(0, 8)}...)` : ''
   console.error(
     `[${context}] Erro: ${error instanceof Error ? error.message : "Erro desconhecido"} ${userIdStr}`
-  );
-  // Em produção, enviar para serviço de log estruturado
+  )
 }
 
 async function sendInviteEmail(invite: { id: string; email: string }, organization: { name: string }) {
@@ -62,7 +57,6 @@ async function sendInviteEmail(invite: { id: string; email: string }, organizati
                 <p style="font-size: 16px; color: #4b5563; margin: 0;">Você recebeu um convite para se juntar à organização</p>
                 <p style="font-size: 18px; font-weight: 600; color: #1f2937; margin: 8px 0 0 0;">${organization.name}</p>
               </div>
-
               <div style="background-color: #f3f4f6; border-radius: 6px; padding: 24px; margin-bottom: 32px; text-align: center;">
                 <p style="margin: 0 0 24px 0; color: #4b5563;">Para aceitar o convite e começar a colaborar, clique no botão abaixo:</p>
                 <a href="${process.env.NEXT_PUBLIC_APP_URL}/invite?token=${invite.id}" 
@@ -70,7 +64,6 @@ async function sendInviteEmail(invite: { id: string; email: string }, organizati
                   Aceitar Convite
                 </a>
               </div>
-
               <div style="border-top: 1px solid #e5e7eb; padding-top: 24px; text-align: center;">
                 <p style="color: #6b7280; font-size: 14px; margin: 0 0 8px 0;">Este convite expira em 7 dias.</p>
                 <p style="color: #6b7280; font-size: 14px; margin: 0;">Se você não solicitou este convite, pode ignorar este email com segurança.</p>
@@ -79,15 +72,14 @@ async function sendInviteEmail(invite: { id: string; email: string }, organizati
           </body>
         </html>
       `,
-    });
-    return true;
+    })
+    return true
   } catch (error) {
-    logError("SendInviteEmail", error);
-    return false;
+    logError("SendInviteEmail", error)
+    return false
   }
 }
 
-// Função memoizada para verificar permissões
 const checkInvitePermissions = unstable_cache(
   async (userId: string, organizationId: string) => {
     const userOrg = await prisma.user_Organization.findFirst({
@@ -101,226 +93,166 @@ const checkInvitePermissions = unstable_cache(
       include: {
         organization: true,
       },
-    });
+    })
 
     if (!userOrg) {
-      throw new Error("Você não tem permissão para gerenciar convites");
+      throw new Error("Você não tem permissão para gerenciar convites")
     }
 
-    return userOrg;
+    return userOrg
   },
   ["invite-permissions"],
-  { revalidate: 60 } // Cache por 1 minuto
-);
+  { revalidate: 60 }
+)
 
 export async function resendInviteAction(inviteId: string): Promise<ManageInviteResult> {
   try {
-    const session = await auth();
+    const session = await auth()
     if (!session?.user?.id) {
-      return {
-        success: false,
-        error: "Você precisa estar logado para reenviar convites",
-      };
+      return { success: false, error: "Você precisa estar logado para reenviar convites" }
     }
 
-    // Validar ID do convite
     if (!inviteId || typeof inviteId !== 'string' || inviteId.trim() === '') {
-      return {
-        success: false,
-        error: "ID do convite inválido",
-      };
+      return { success: false, error: "ID do convite inválido" }
     }
 
     const invite = await prisma.invite.findUnique({
       where: { id: inviteId },
-      include: {
-        organization: true,
-      },
-    });
+      include: { organization: true },
+    })
 
     if (!invite) {
-      return {
-        success: false,
-        error: "Convite não encontrado",
-      };
+      return { success: false, error: "Convite não encontrado" }
     }
 
-    // Usar transação para garantir consistência
     return await prisma.$transaction(async (tx) => {
-      // Verificar permissões
-      await checkInvitePermissions(session.user.id, invite.organization_id);
-      
-      // Verificar status do convite
+      await checkInvitePermissions(session.user.id, invite.organization_id)
+
       if (invite.status !== "PENDING") {
         return {
           success: false,
           error: `Este convite não pode ser reenviado pois está ${invite.status === "ACCEPTED" ? "aceito" : invite.status === "REJECTED" ? "rejeitado" : "expirado"}`,
           status: invite.status,
-        };
+        }
       }
-      
-      // Verificar expiração
+
       if (invite.expires_at < new Date()) {
         await tx.invite.update({
           where: { id: inviteId },
           data: { status: "EXPIRED" },
-        });
+        })
         return {
           success: false,
           error: "Este convite expirou e não pode ser reenviado",
           status: "EXPIRED",
-        };
+        }
       }
-      
-      // Enviar email
-      const emailSent = await sendInviteEmail(invite, invite.organization);
+
+      const emailSent = await sendInviteEmail(invite, invite.organization)
       if (!emailSent) {
-        return {
-          success: false,
-          error: "Erro ao reenviar o email do convite",
-        };
+        return { success: false, error: "Erro ao reenviar o email do convite" }
       }
-      
-      // Atualizar convite
+
       await tx.invite.update({
         where: { id: inviteId },
         data: {
           expires_at: addDays(new Date(), 7),
           updated_at: new Date(),
         },
-      });
+      })
 
-      revalidatePath(`/${invite.organization.uniqueId}`);
-      return {
-        success: true,
-        status: "PENDING",
-      };
-    });
+      revalidatePath(`/${invite.organization.uniqueId}`)
+      return { success: true, status: "PENDING" }
+    })
   } catch (error) {
-    logError("ResendInvite", error, auth().then(s => s?.user?.id).catch(() => undefined));
+    logError("ResendInvite", error, auth().then(s => s?.user?.id).catch(() => undefined))
     return {
       success: false,
       error: error instanceof Error ? error.message : "Erro ao reenviar convite",
-    };
+    }
   }
 }
 
 export async function deleteInviteAction(inviteId: string): Promise<ManageInviteResult> {
   try {
-    const session = await auth();
+    const session = await auth()
     if (!session?.user?.id) {
-      return {
-        success: false,
-        error: "Você precisa estar logado para excluir convites",
-      };
+      return { success: false, error: "Você precisa estar logado para excluir convites" }
     }
 
-    // Validar ID do convite
     if (!inviteId || typeof inviteId !== 'string' || inviteId.trim() === '') {
-      return {
-        success: false,
-        error: "ID do convite inválido",
-      };
+      return { success: false, error: "ID do convite inválido" }
     }
 
     const invite = await prisma.invite.findUnique({
       where: { id: inviteId },
-      include: {
-        organization: true,
-      },
-    });
+      include: { organization: true },
+    })
 
     if (!invite) {
-      return {
-        success: false,
-        error: "Convite não encontrado",
-      };
+      return { success: false, error: "Convite não encontrado" }
     }
 
-    // Usar transação para garantir consistência
     return await prisma.$transaction(async (tx) => {
-      // Verificar permissões
-      await checkInvitePermissions(session.user.id, invite.organization_id);
-      
-      // Verificar status
+      await checkInvitePermissions(session.user.id, invite.organization_id)
+
       if (invite.status === "ACCEPTED") {
         return {
           success: false,
           error: "Não é possível excluir um convite que já foi aceito",
           status: invite.status,
-        };
+        }
       }
-      
-      // Excluir convite
+
       await tx.invite.delete({
         where: { id: inviteId },
-      });
+      })
 
-      revalidatePath(`/${invite.organization.uniqueId}`);
-      return {
-        success: true,
-      };
-    });
+      revalidatePath(`/${invite.organization.uniqueId}`)
+      return { success: true }
+    })
   } catch (error) {
-    logError("DeleteInvite", error, auth().then(s => s?.user?.id).catch(() => undefined));
+    logError("DeleteInvite", error, auth().then(s => s?.user?.id).catch(() => undefined))
     return {
       success: false,
       error: error instanceof Error ? error.message : "Erro ao excluir convite",
-    };
+    }
   }
 }
 
 export async function inviteMemberAction(formData: FormData): Promise<InviteResult> {
   try {
-    const session = await auth();
+    const session = await auth()
 
     if (!session?.user?.id) {
-      return {
-        success: false,
-        error: "Você precisa estar logado para convidar membros",
-      };
+      return { success: false, error: "Você precisa estar logado para convidar membros" }
     }
 
-    // Extrair e validar dados
     const rawData = {
       email: (formData.get("email") as string || "").trim().toLowerCase(),
       organizationId: formData.get("organizationId") as string,
       role: (formData.get("role") as Role) || "USER",
-    };
+    }
 
-    // Validar os dados com zod
-    const result = InviteSchema.safeParse(rawData);
+    const result = InviteSchema.safeParse(rawData)
     if (!result.success) {
-      return {
-        success: false,
-        error: result.error.errors[0].message,
-      };
+      return { success: false, error: result.error.errors[0].message }
     }
 
-    const { email, organizationId, role } = result.data;
+    const { email, organizationId, role } = result.data
 
-    // Verificar se não está convidando a si mesmo
     if (session.user.email?.toLowerCase() === email) {
-      return {
-        success: false,
-        error: "Você não pode convidar a si mesmo",
-      };
+      return { success: false, error: "Você não pode convidar a si mesmo" }
     }
-    
-    // Usar transação para garantir consistência
+
     return await prisma.$transaction(async (tx) => {
-      // Buscar dados necessários em paralelo
       const [organization, userOrg, existingInvite, existingMember] = await Promise.all([
-        tx.organization.findUnique({
-          where: { id: organizationId },
-        }),
+        tx.organization.findUnique({ where: { id: organizationId } }),
         tx.user_Organization.findFirst({
           where: {
             user_id: session.user.id,
             organization_id: organizationId,
-            role: {
-              in: ["OWNER", "ADMIN"],
-            },
+            role: { in: ["OWNER", "ADMIN"] },
           },
         }),
         tx.invite.findFirst({
@@ -335,80 +267,55 @@ export async function inviteMemberAction(formData: FormData): Promise<InviteResu
         tx.user_Organization.findFirst({
           where: {
             organization_id: organizationId,
-            user: {
-              email,
-            },
+            user: { email },
           },
         }),
-      ]);
-      
-      // Validar resultados
+      ])
+
       if (!organization) {
-        return {
-          success: false,
-          error: "Organização não encontrada",
-        };
+        return { success: false, error: "Organização não encontrada" }
       }
 
       if (!userOrg) {
-        return {
-          success: false,
-          error: "Você não tem permissão para convidar membros",
-        };
+        return { success: false, error: "Você não tem permissão para convidar membros" }
       }
 
       if (existingInvite) {
-        return {
-          success: false,
-          error: "Já existe um convite pendente para este email",
-        };
+        return { success: false, error: "Já existe um convite pendente para este email" }
       }
 
       if (existingMember) {
-        return {
-          success: false,
-          error: "Este usuário já é membro da organização",
-        };
+        return { success: false, error: "Este usuário já é membro da organização" }
       }
-      
-      // Criar convite com ID seguro
+
       const invite = await tx.invite.create({
         data: {
-          id: randomUUID(), // Usar UUID para geração segura de token
+          id: randomUUID(),
           email,
           organization_id: organizationId,
           invited_by_id: session.user.id,
           role,
-          expires_at: addDays(new Date(), 7), 
+          expires_at: addDays(new Date(), 7),
         },
-      });
-      
-      // Enviar email
-      const emailSent = await sendInviteEmail(invite, organization);
+      })
+
+      const emailSent = await sendInviteEmail(invite, organization)
       if (!emailSent) {
-        // Marcar como expirado se email falhar
         await tx.invite.update({
           where: { id: invite.id },
           data: { status: "EXPIRED" },
-        });
-        return {
-          success: false,
-          error: "Erro ao enviar o email do convite",
-        };
+        })
+        return { success: false, error: "Erro ao enviar o email do convite" }
       }
 
-      // Limpar cache
-      revalidatePath(`/${organization.uniqueId}`);
-      return {
-        success: true,
-        inviteId: invite.id,
-      };
-    });
+      revalidatePath(`/${organization.uniqueId}`)
+      return { success: true, inviteId: invite.id }
+    })
   } catch (error) {
-    logError("InviteMember", error, auth().then(s => s?.user?.id).catch(() => undefined));
+    logError("InviteMember", error, auth().then(s => s?.user?.id).catch(() => undefined))
     return {
       success: false,
       error: error instanceof Error ? error.message : "Erro ao processar convite",
-    };
+    }
   }
-} 
+}

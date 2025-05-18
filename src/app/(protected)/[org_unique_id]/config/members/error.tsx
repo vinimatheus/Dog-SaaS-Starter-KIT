@@ -13,10 +13,8 @@ export default function MembersErrorPage({
   reset: () => void
 }) {
   useEffect(() => {
-    // Registrar o erro no console ou em um serviço de monitoramento
     console.error('Erro na página de membros:', error)
     
-    // Mostrar notificação de erro
     toast.error('Ocorreu um erro na página de membros', {
       description: error.message || 'Não foi possível carregar a lista de membros.',
     })

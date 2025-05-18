@@ -70,14 +70,14 @@ export function InviteMemberForm({
         formData.append("role", values.role);
         formData.append("organizationId", organizationId);
         
-        // Toast de carregamento
+        
         const toastId = toast.loading('Enviando convite...');
         
-        // Chamar action
+        
         const result = await inviteMemberAction(formData);
         
         if (result.success) {
-          // Atualizar toast para sucesso
+          
           toast.success('Convite enviado com sucesso!', { 
             id: toastId,
             description: `Um email foi enviado para ${values.email}`
@@ -85,14 +85,14 @@ export function InviteMemberForm({
           form.reset();
           onSuccess?.();
         } else {
-          // Atualizar toast para erro
+          
           toast.error('Falha ao enviar convite', { 
             id: toastId,
             description: result.error || 'Ocorreu um erro inesperado'
           });
         }
       } catch (error) {
-        // Erro não tratado
+        
         toast.error('Erro ao processar o convite', {
           description: error instanceof Error 
             ? error.message 

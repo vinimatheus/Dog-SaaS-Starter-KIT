@@ -13,10 +13,8 @@ export default function ErrorBoundary({
   reset: () => void
 }) {
   useEffect(() => {
-    // Registrar o erro no console ou em um serviço de monitoramento
     console.error('Erro na aplicação:', error)
     
-    // Mostrar notificação de erro
     toast.error('Ocorreu um erro inesperado', {
       description: error.message || 'A aplicação encontrou um problema.',
     })

@@ -7,16 +7,13 @@ import { Role } from "@prisma/client"
 import { z } from "zod"
 import { unstable_cache } from "next/cache"
 
-// Schemas de validação
 const MemberActionSchema = z.object({
-  organizationId: z.string().uuid("ID de organização inválido"),
-  targetUserId: z.string().uuid("ID de usuário inválido"),
+  organizationId: z.string().uuid(),
+  targetUserId: z.string().uuid(),
 })
 
 const RoleUpdateSchema = MemberActionSchema.extend({
-  newRole: z.enum(["OWNER", "ADMIN", "USER"], {
-    invalid_type_error: "Cargo inválido",
-  }),
+  newRole: z.enum(["OWNER", "ADMIN", "USER"]),
 })
 
 interface ManageMemberResult {
@@ -24,16 +21,13 @@ interface ManageMemberResult {
   error?: string
 }
 
-// Função segura para log sem expor dados sensíveis
 function logError(context: string, error: unknown, userId?: string | Promise<string | undefined>) {
-  const userIdStr = userId && typeof userId === 'string' ? `(User: ${userId.slice(0, 8)}...)` : '';
+  const userIdStr = userId && typeof userId === 'string' ? `(User: ${userId.slice(0, 8)}...)` : ''
   console.error(
     `[${context}] Erro: ${error instanceof Error ? error.message : "Erro desconhecido"} ${userIdStr}`
   )
-  // Em produção, enviar para serviço de log estruturado
 }
 
-// Função memoizada para verificar permissões com cache
 const checkPermission = unstable_cache(
   async (userId: string, organizationId: string, roles: Role[]) => {
     const userOrg = await prisma.user_Organization.findFirst({
@@ -51,10 +45,9 @@ const checkPermission = unstable_cache(
     return userOrg
   },
   ["member-permissions"],
-  { revalidate: 60 } // Cache por 1 minuto
+  { revalidate: 60 }
 )
 
-// Função memoizada para buscar informações da organização
 const getOrganizationPath = unstable_cache(
   async (organizationId: string) => {
     const organization = await prisma.organization.findUnique({ 
@@ -64,7 +57,7 @@ const getOrganizationPath = unstable_cache(
     return organization?.uniqueId
   },
   ["organization-path"],
-  { revalidate: 300 } // Cache por 5 minutos
+  { revalidate: 300 }
 )
 
 async function revalidateOrganizationPath(organizationId: string) {
@@ -80,7 +73,6 @@ export async function updateMemberRoleAction(
   newRoleRaw: Role
 ): Promise<ManageMemberResult> {
   try {
-    // Validar os parâmetros
     const { organizationId, targetUserId, newRole } = RoleUpdateSchema.parse({
       organizationId: organizationIdRaw,
       targetUserId: targetUserIdRaw,
@@ -96,16 +88,13 @@ export async function updateMemberRoleAction(
       return { success: false, error: "Você não pode alterar seu próprio cargo" }
     }
 
-    // Usar transação para garantir consistência
     return await prisma.$transaction(async (tx) => {
-      // Verificar permissões
       try {
         await checkPermission(session.user.id, organizationId, ["OWNER"])
       } catch (error) {
         return { success: false, error: error instanceof Error ? error.message : "Permissão negada" }
       }
 
-      // Verificar se o membro alvo existe
       const targetMember = await tx.user_Organization.findFirst({
         where: {
           user_id: targetUserId,
@@ -117,12 +106,10 @@ export async function updateMemberRoleAction(
         return { success: false, error: "Membro não encontrado" }
       }
 
-      // Verificar se não é o proprietário
       if (targetMember.role === "OWNER") {
         return { success: false, error: "Não é possível alterar o cargo do proprietário" }
       }
 
-      // Atualizar o papel do membro
       await tx.user_Organization.update({
         where: {
           user_id_organization_id: {
@@ -133,23 +120,16 @@ export async function updateMemberRoleAction(
         data: { role: newRole },
       })
 
-      // Limpar cache
       await revalidateOrganizationPath(organizationId)
       return { success: true }
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return {
-        success: false,
-        error: error.errors[0].message,
-      }
+      return { success: false, error: error.errors[0].message }
     }
     
     logError("UpdateMemberRole", error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Erro ao atualizar cargo",
-    }
+    return { success: false, error: error instanceof Error ? error.message : "Erro ao atualizar cargo" }
   }
 }
 
@@ -158,7 +138,6 @@ export async function removeMemberAction(
   targetUserIdRaw: string
 ): Promise<ManageMemberResult> {
   try {
-    // Validar os parâmetros
     const { organizationId, targetUserId } = MemberActionSchema.parse({
       organizationId: organizationIdRaw,
       targetUserId: targetUserIdRaw,
@@ -169,16 +148,13 @@ export async function removeMemberAction(
       return { success: false, error: "Autenticação necessária" }
     }
 
-    // Usar transação para garantir consistência
     return await prisma.$transaction(async (tx) => {
-      // Verificar permissões
       try {
         await checkPermission(session.user.id, organizationId, ["OWNER", "ADMIN"])
       } catch (error) {
         return { success: false, error: error instanceof Error ? error.message : "Permissão negada" }
       }
 
-      // Verificar se o membro alvo existe
       const targetMember = await tx.user_Organization.findFirst({
         where: {
           user_id: targetUserId,
@@ -190,12 +166,10 @@ export async function removeMemberAction(
         return { success: false, error: "Membro não encontrado" }
       }
 
-      // Verificar se não é o proprietário
       if (targetMember.role === "OWNER") {
         return { success: false, error: "Não é possível remover o proprietário" }
       }
 
-      // Verificar se admin tentando remover outro admin
       const currentUserOrg = await tx.user_Organization.findFirst({
         where: {
           user_id: session.user.id,
@@ -208,7 +182,6 @@ export async function removeMemberAction(
         return { success: false, error: "Administradores não podem remover outros administradores" }
       }
 
-      // Remover o membro
       await tx.user_Organization.delete({
         where: {
           user_id_organization_id: {
@@ -218,23 +191,16 @@ export async function removeMemberAction(
         },
       })
 
-      // Limpar cache
       await revalidateOrganizationPath(organizationId)
       return { success: true }
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return {
-        success: false,
-        error: error.errors[0].message,
-      }
+      return { success: false, error: error.errors[0].message }
     }
     
     logError("RemoveMember", error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Erro ao remover membro",
-    }
+    return { success: false, error: error instanceof Error ? error.message : "Erro ao remover membro" }
   }
 }
 
@@ -243,7 +209,6 @@ export async function transferOwnershipAction(
   newOwnerIdRaw: string
 ): Promise<ManageMemberResult> {
   try {
-    // Validar os parâmetros
     const { organizationId, targetUserId: newOwnerId } = MemberActionSchema.parse({
       organizationId: organizationIdRaw,
       targetUserId: newOwnerIdRaw,
@@ -258,16 +223,13 @@ export async function transferOwnershipAction(
       return { success: false, error: "Você já é o proprietário" }
     }
 
-    // Usar transação para garantir consistência
     return await prisma.$transaction(async (tx) => {
-      // Verificar permissões
       try {
         await checkPermission(session.user.id, organizationId, ["OWNER"])
       } catch (error) {
         return { success: false, error: error instanceof Error ? error.message : "Permissão negada" }
       }
 
-      // Verificar se o novo proprietário existe na organização
       const newOwner = await tx.user_Organization.findFirst({
         where: {
           user_id: newOwnerId,
@@ -279,7 +241,6 @@ export async function transferOwnershipAction(
         return { success: false, error: "Novo proprietário não encontrado na organização" }
       }
 
-      // Atualizar proprietário
       await tx.user_Organization.update({
         where: {
           user_id_organization_id: {
@@ -289,8 +250,7 @@ export async function transferOwnershipAction(
         },
         data: { role: "OWNER" },
       })
-      
-      // Rebaixar o atual proprietário para administrador
+
       await tx.user_Organization.update({
         where: {
           user_id_organization_id: {
@@ -300,29 +260,21 @@ export async function transferOwnershipAction(
         },
         data: { role: "ADMIN" },
       })
-      
-      // Atualizar o registro da organização
+
       await tx.organization.update({
         where: { id: organizationId },
         data: { owner_user_id: newOwnerId },
       })
 
-      // Limpar cache
       await revalidateOrganizationPath(organizationId)
       return { success: true }
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return {
-        success: false,
-        error: error.errors[0].message,
-      }
+      return { success: false, error: error.errors[0].message }
     }
     
     logError("TransferOwnership", error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Erro ao transferir propriedade",
-    }
+    return { success: false, error: error instanceof Error ? error.message : "Erro ao transferir propriedade" }
   }
 }

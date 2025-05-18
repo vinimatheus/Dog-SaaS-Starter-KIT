@@ -125,7 +125,6 @@ export const {
 			
 			console.log(`Conta ${account.provider} vinculada ao usuário ${user.id}`);
 			
-			// Atualizar a sessão para refletir a nova vinculação
 			await prisma.user.update({
 				where: { id: user.id },
 				data: { sessionVersion: { increment: 1 } }

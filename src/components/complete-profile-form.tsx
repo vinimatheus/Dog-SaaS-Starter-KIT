@@ -22,15 +22,15 @@ import { Button } from '@/components/ui/button';
 
 import { updateProfileAction } from '@/actions/update-profile.actions';
 
-// Safe URL validation function to prevent open redirect attacks
+
 const isSafeRedirect = (url: string) => {
   try {
-    // Check if it's a relative URL (starts with /)
+    
     if (url.startsWith('/')) {
       return true;
     }
     
-    // Otherwise, validate that it's an absolute URL within our domain
+    
     const parsedUrl = new URL(url, window.location.origin);
     return parsedUrl.origin === window.location.origin;
   } catch {
@@ -72,7 +72,7 @@ export function CompleteProfileForm({
   const onSubmit = async (values: CompleteProfileValues) => {
     startTransition(async () => {
       try {
-        // Toast de carregamento
+        
         const toastId = toast.loading('Atualizando seu perfil...');
         
         const formData = new FormData();
@@ -81,7 +81,7 @@ export function CompleteProfileForm({
         const result = await updateProfileAction(formData);
         
         if (result.success) {
-          // Atualizar toast para sucesso
+          
           toast.success('Perfil atualizado com sucesso!', {
             id: toastId,
             description: `Bem-vindo, ${result.updatedName || values.name}!`
@@ -89,13 +89,13 @@ export function CompleteProfileForm({
           
           console.log("Profile update successful:", result);
           
-          // Use the router for safe navigation if possible
+          
           setTimeout(() => {
             if (isSafeRedirect(returnTo)) {
-              // Safe URL - can redirect
+              
               router.push(returnTo);
             } else {
-              // Fallback to a safe default route if the URL isn't safe
+              
               console.warn("Unsafe redirect URL detected, using fallback route");
               router.push('/organizations');
             }
@@ -103,7 +103,7 @@ export function CompleteProfileForm({
         } else {
           console.error("Profile update failed:", result);
           
-          // Atualizar toast para erro
+          
           toast.error('Falha ao atualizar perfil', { 
             id: toastId,
             description: result.error || 'Ocorreu um erro inesperado'
@@ -112,7 +112,7 @@ export function CompleteProfileForm({
       } catch (error) {
         console.error("Error during profile update:", error);
         
-        // Erro não tratado
+        
         toast.error('Erro ao processar a atualização', {
           description: error instanceof Error 
             ? error.message 
@@ -122,7 +122,7 @@ export function CompleteProfileForm({
     });
   };
 
-  // Listen for any session changes
+  
   useEffect(() => {
     const refreshSession = () => {
       router.refresh();

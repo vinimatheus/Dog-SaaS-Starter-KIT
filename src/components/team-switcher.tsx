@@ -37,7 +37,7 @@ interface Organization {
   name: string
 }
 
-// Componente memoizado para o item da organização na lista
+
 const OrganizationItem = memo(function OrganizationItem({
   org,
   isActive,
@@ -74,7 +74,7 @@ const OrganizationItem = memo(function OrganizationItem({
   );
 });
 
-// Componente principal para o seletor de organizações
+
 export function TeamSwitcher() {
   const { isMobile } = useSidebar()
   const router = useRouter()
@@ -85,13 +85,13 @@ export function TeamSwitcher() {
 
   const { organizations, loading, error, refetch } = useOrganizations()
 
-  // Memoriza a organização atual para evitar re-renderizações
+  
   const currentOrg = useMemo(() => 
     organizations.find((org) => org.uniqueId === currentOrgUniqueId),
     [organizations, currentOrgUniqueId]
   );
 
-  // Callbacks memoizados para evitar recriações de funções
+  
   const handleCreateOrganization = useCallback(() => {
     setDropdownOpen(false)
     startTransition(() => {
@@ -111,7 +111,7 @@ export function TeamSwitcher() {
     setDropdownOpen(false)
   }, [router]);
 
-  // Renderização condicional para a lista de organizações
+  
   const renderOrganizationList = useCallback(() => {
     if (loading) {
       return <DropdownMenuItem disabled>Carregando...</DropdownMenuItem>

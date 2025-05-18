@@ -26,9 +26,7 @@ export default function ClientAccountLinking({ userEmail, linkedProviders }: Cli
   const handleLinkProvider = async (provider: string) => {
     setIsLinking(true);
     try {
-      // O signIn redireciona o usuário para a página de autenticação do provedor
-      // Quando ele retornar, a conta será vinculada automaticamente graças à 
-      // configuração allowDangerousEmailAccountLinking e ao callback signIn
+
       await signIn(provider, { 
         callbackUrl: window.location.href,
         redirect: true
