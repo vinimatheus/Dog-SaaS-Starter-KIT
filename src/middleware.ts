@@ -18,7 +18,7 @@ export const RESERVED_PATHS = new Set([
 	"sitemap.xml",
 	"robots.txt",
 	"organizations",
-	"auth",
+	"auth"
 ]);
 
 function matchOrganizationRoute(pathname: string): RouteMatch {
@@ -26,7 +26,9 @@ function matchOrganizationRoute(pathname: string): RouteMatch {
 		pathname.startsWith("/_next") ||
 		pathname.startsWith("/api") ||
 		pathname === "/" ||
-		pathname === ""
+		pathname === "" ||
+		pathname === "/test-lighthouse" ||
+		pathname === "/login-bypass"
 	) {
 		return { isOrgRoute: false };
 	}
