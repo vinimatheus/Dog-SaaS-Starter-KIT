@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { CreateOrganizationForm } from "@/components/organization/create-organization-form";
+import { PendingInvites } from "@/components/pending-invites";
 
 type OrganizationWithMembers = Organization & {
   User_Organization: (User_Organization & {
@@ -109,40 +110,7 @@ export default async function OrganizationsPage() {
           {/* Convites Pendentes */}
           {pendingInvites.length > 0 && (
             <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Users className="h-5 w-5 text-primary" />
-                <h2 className="text-xl font-semibold">Convites Pendentes</h2>
-              </div>
-              <div className="space-y-4">
-                {pendingInvites.map((invite) => (
-                  <div
-                    key={invite.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                  >
-                    <div>
-                      <h3 className="font-medium">
-                        {invite.organization.name}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        Convite para {invite.email}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Expira em{" "}
-                        {new Date(invite.expires_at).toLocaleDateString("pt-BR")}
-                      </p>
-                    </div>
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="ml-4"
-                    >
-                      <a href={`/invite?token=${invite.id}`}>
-                        Ver Convite
-                      </a>
-                    </Button>
-                  </div>
-                ))}
-              </div>
+              <PendingInvites />
             </div>
           )}
 

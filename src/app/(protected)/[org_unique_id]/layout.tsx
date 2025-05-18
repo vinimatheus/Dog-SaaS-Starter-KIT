@@ -9,7 +9,9 @@ import { cookies } from "next/headers";
 import { Separator } from "@/components/ui/separator";
 import { DynamicBreadcrumb } from "@/components/dynamic-breadcrumb";
 import { unstable_cache } from "next/cache";
-
+import { NotificationMenu } from "@/components/notification/notification-menu";
+import { PendingInvitesMenu } from "@/components/pending-invites-menu";
+ 
 export type AuthenticatedTeamsLayoutProps = {
 	children: React.ReactNode;
 	params: Promise<{
@@ -75,6 +77,10 @@ export default async function AuthenticatedOrganizationLayout({
 								organizationName={organization.name} 
 								organizationId={org_unique_id} 
 							/>
+						</div>
+						<div className="ml-auto mr-4 flex items-center gap-2">
+							<PendingInvitesMenu />
+							<NotificationMenu />
 						</div>
 					</header>
 					<main className="flex flex-1 flex-col gap-4 p-4 pt-0">

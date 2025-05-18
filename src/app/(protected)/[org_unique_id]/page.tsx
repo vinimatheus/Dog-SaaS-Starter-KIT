@@ -9,6 +9,7 @@ import { Users, Mail } from "lucide-react";
 import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
 import { PageLayout } from "@/components/page-layout";
+import { PendingInvites } from "@/components/pending-invites";
 
 const LoadingCard = () => (
 	<Card className="animate-pulse">
@@ -192,6 +193,11 @@ export default async function OrganizationDashboard({
 			}>
 				<OrganizationStats stats={stats} />
 			</Suspense>
+
+			{/* Convites Pendentes */}
+			<div className="mt-6">
+				<PendingInvites />
+			</div>
 
 			<Card>
 				<CardHeader>

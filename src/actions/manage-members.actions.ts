@@ -8,8 +8,8 @@ import { z } from "zod"
 import { unstable_cache } from "next/cache"
 
 const MemberActionSchema = z.object({
-  organizationId: z.string().uuid(),
-  targetUserId: z.string().uuid(),
+  organizationId: z.string().min(1, "ID da organização é obrigatório"),
+  targetUserId: z.string().min(1, "ID do usuário alvo é obrigatório"),
 })
 
 const RoleUpdateSchema = MemberActionSchema.extend({

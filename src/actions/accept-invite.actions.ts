@@ -6,9 +6,10 @@ import { revalidatePath } from "next/cache"
 import { Role, Prisma } from "@prisma/client"
 import { z } from "zod"
 import { unstable_cache } from "next/cache"
+import { NotificationService } from "@/lib/services/notification.service"
 
 const InviteTokenSchema = z.object({
-  inviteId: z.string().uuid("ID de convite inválido"),
+  inviteId: z.string().min(1, "ID de convite inválido"),
 })
 
 interface AcceptInviteResult {
@@ -110,7 +111,7 @@ export async function acceptInviteAction(inviteIdRaw: string): Promise<AcceptInv
     return await prisma.$transaction(async (tx) => {
       const freshInvite = await tx.invite.findUnique({
         where: { id: inviteId },
-        include: { organization: true },
+        include: { organization: true, invited_by: true },
       })
 
       const validationError = validateInvite(freshInvite, userEmail)
@@ -137,6 +138,22 @@ export async function acceptInviteAction(inviteIdRaw: string): Promise<AcceptInv
         where: { id: inviteId },
         data: { status: "ACCEPTED" },
       })
+      
+      if (freshInvite.invited_by) {
+        try {
+          await NotificationService.createNotification({
+            userId: freshInvite.invited_by.id,
+            title: "Convite aceito",
+            message: `${session.user.name || session.user.email} aceitou seu convite para a organização ${freshInvite.organization.name}`,
+            type: "INVITE",
+            linkedEntity: freshInvite.organization.id,
+            entityType: "organization"
+          });
+        } catch (notificationError) {
+          console.error("Erro ao criar notificação de convite aceito:", notificationError);
+          // Não interrompe o fluxo
+        }
+      }
 
       revalidatePath("/")
       revalidatePath(`/${freshInvite.organization.uniqueId}`)
@@ -160,6 +177,98 @@ export async function acceptInviteAction(inviteIdRaw: string): Promise<AcceptInv
     return { 
       success: false, 
       error: error instanceof Error ? error.message : "Erro ao aceitar convite" 
+    }
+  }
+}
+
+export async function rejectInviteAction(inviteIdRaw: string): Promise<AcceptInviteResult> {
+  try {
+    const result = InviteTokenSchema.safeParse({ inviteId: inviteIdRaw })
+    if (!result.success) {
+      return { 
+        success: false, 
+        error: result.error.errors[0].message 
+      }
+    }
+    
+    const { inviteId } = result.data
+    
+    const session = await auth()
+    const userId = session?.user?.id
+    const userEmail = session?.user?.email
+
+    if (!userId || !userEmail) {
+      return { success: false, error: "Você precisa estar logado para gerenciar convites" }
+    }
+
+    const invite = await getInvite(inviteId)
+    
+    if (!invite) {
+      return { success: false, error: "Convite não encontrado" }
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      const freshInvite = await tx.invite.findUnique({
+        where: { id: inviteId },
+        include: { organization: true, invited_by: true },
+      })
+
+      const validationError = validateInvite(freshInvite, userEmail)
+      if (validationError) {
+        if (validationError === "Este convite expirou" && freshInvite) {
+          await tx.invite.update({
+            where: { id: inviteId },
+            data: { status: "EXPIRED" }
+          })
+        }
+        return { success: false, error: validationError }
+      }
+
+      if (!freshInvite) {
+        return { success: false, error: "Convite não encontrado" }
+      }
+
+      await tx.invite.update({
+        where: { id: inviteId },
+        data: { status: "REJECTED" },
+      })
+      
+      if (freshInvite.invited_by) {
+        try {
+          await NotificationService.createNotification({
+            userId: freshInvite.invited_by.id,
+            title: "Convite rejeitado",
+            message: `${session.user.name || session.user.email} rejeitou seu convite para a organização ${freshInvite.organization.name}`,
+            type: "INVITE",
+            linkedEntity: freshInvite.organization.id,
+            entityType: "organization"
+          });
+        } catch (notificationError) {
+          console.error("Erro ao criar notificação de convite rejeitado:", notificationError);
+          // Não interrompe o fluxo
+        }
+      }
+
+      revalidatePath("/")
+      revalidatePath(`/organizations`)
+
+      return {
+        success: true,
+      }
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        error: error.errors[0].message,
+      }
+    }
+    
+    const userId = await auth().then(s => s?.user?.id).catch(() => undefined);
+    logError("RejectInvite", error, userId)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Erro ao rejeitar convite" 
     }
   }
 }

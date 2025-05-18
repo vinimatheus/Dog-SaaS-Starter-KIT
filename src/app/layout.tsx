@@ -34,8 +34,8 @@ export default function RootLayout({
 				className={`${geistSans.variable} ${geistMono.variable} antialiased w-screen h-screen`}
 			>
 				<SessionProvider>
-				<NextTopLoader showSpinner={false} />
-						{children}
+					<NextTopLoader showSpinner={false} />
+					{children}
 					<Toaster richColors position="top-right" />
 				</SessionProvider>
 			</body>

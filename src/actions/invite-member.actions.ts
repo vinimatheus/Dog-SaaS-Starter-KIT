@@ -14,7 +14,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 const InviteSchema = z.object({
   email: z.string().email().toLowerCase(),
-  organizationId: z.string().uuid(),
+  organizationId: z.string().min(1, "ID da organização é obrigatório"),
   role: z.enum(["OWNER", "ADMIN", "USER"]).default("USER"),
 })
 
@@ -228,46 +228,65 @@ export async function inviteMemberAction(formData: FormData): Promise<InviteResu
       return { success: false, error: "Você precisa estar logado para convidar membros" }
     }
 
+    const email = (formData.get("email") as string || "").trim().toLowerCase();
+    const organizationId = formData.get("organizationId") as string;
+    const role = (formData.get("role") as Role) || "USER";
+
+    console.log("Dados recebidos:", { email, organizationId, role });
+
+    if (!organizationId) {
+      return { success: false, error: "ID da organização não fornecido" };
+    }
+
     const rawData = {
-      email: (formData.get("email") as string || "").trim().toLowerCase(),
-      organizationId: formData.get("organizationId") as string,
-      role: (formData.get("role") as Role) || "USER",
+      email,
+      organizationId,
+      role,
     }
 
     const result = InviteSchema.safeParse(rawData)
     if (!result.success) {
-      return { success: false, error: result.error.errors[0].message }
+      const errorMsg = result.error.errors.map(err => `${err.path}: ${err.message}`).join(', ');
+      return { success: false, error: errorMsg }
     }
 
-    const { email, organizationId, role } = result.data
+    const { email: validatedEmail, organizationId: validatedOrgId, role: validatedRole } = result.data
 
-    if (session.user.email?.toLowerCase() === email) {
+    if (session.user.email?.toLowerCase() === validatedEmail) {
       return { success: false, error: "Você não pode convidar a si mesmo" }
     }
 
     return await prisma.$transaction(async (tx) => {
-      const [organization, userOrg, existingInvite, existingMember] = await Promise.all([
-        tx.organization.findUnique({ where: { id: organizationId } }),
+      const [organization, userOrg, existingInvite, existingMember, anyExistingInvite] = await Promise.all([
+        tx.organization.findUnique({ where: { id: validatedOrgId } }),
         tx.user_Organization.findFirst({
           where: {
             user_id: session.user.id,
-            organization_id: organizationId,
+            organization_id: validatedOrgId,
             role: { in: ["OWNER", "ADMIN"] },
           },
         }),
         tx.invite.findFirst({
           where: {
             AND: [
-              { email },
-              { organization_id: organizationId },
+              { email: validatedEmail },
+              { organization_id: validatedOrgId },
               { status: "PENDING" },
             ],
           },
         }),
         tx.user_Organization.findFirst({
           where: {
-            organization_id: organizationId,
-            user: { email },
+            organization_id: validatedOrgId,
+            user: { email: validatedEmail },
+          },
+        }),
+        tx.invite.findFirst({
+          where: {
+            AND: [
+              { email: validatedEmail },
+              { organization_id: validatedOrgId },
+            ],
           },
         }),
       ])
@@ -288,16 +307,43 @@ export async function inviteMemberAction(formData: FormData): Promise<InviteResu
         return { success: false, error: "Este usuário já é membro da organização" }
       }
 
-      const invite = await tx.invite.create({
-        data: {
-          id: randomUUID(),
-          email,
-          organization_id: organizationId,
-          invited_by_id: session.user.id,
-          role,
-          expires_at: addDays(new Date(), 7),
-        },
-      })
+      let invite;
+      
+      if (anyExistingInvite) {
+        if (anyExistingInvite.status === "ACCEPTED") {
+          const isStillMember = await tx.user_Organization.findFirst({
+            where: {
+              organization_id: validatedOrgId,
+              user: { email: validatedEmail },
+            },
+          });
+          
+          if (isStillMember) {
+            return { success: false, error: "Este usuário já é membro da organização" }
+          }
+        }
+        
+        invite = await tx.invite.update({
+          where: { id: anyExistingInvite.id },
+          data: {
+            role: validatedRole,
+            status: "PENDING",
+            expires_at: addDays(new Date(), 7),
+            updated_at: new Date(),
+          }
+        });
+      } else {
+        invite = await tx.invite.create({
+          data: {
+            id: randomUUID(),
+            email: validatedEmail,
+            organization_id: validatedOrgId,
+            invited_by_id: session.user.id,
+            role: validatedRole,
+            expires_at: addDays(new Date(), 7),
+          },
+        });
+      }
 
       const emailSent = await sendInviteEmail(invite, organization)
       if (!emailSent) {
@@ -316,6 +362,50 @@ export async function inviteMemberAction(formData: FormData): Promise<InviteResu
     return {
       success: false,
       error: error instanceof Error ? error.message : "Erro ao processar convite",
+    }
+  }
+}
+
+export async function getPendingInvitesForUserAction() {
+  try {
+    const session = await auth()
+    if (!session?.user?.id || !session?.user?.email) {
+      return { success: false, error: "Usuário não autenticado", invites: [] }
+    }
+
+    const now = new Date()
+    const pendingInvites = await prisma.invite.findMany({
+      where: {
+        email: session.user.email.toLowerCase(),
+        status: "PENDING",
+        expires_at: { gt: now }
+      },
+      include: {
+        organization: true,
+        invited_by: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true
+          }
+        }
+      },
+      orderBy: {
+        created_at: 'desc'
+      }
+    })
+
+    return { 
+      success: true, 
+      invites: pendingInvites
+    }
+  } catch (error) {
+    logError("GetPendingInvites", error, auth().then(s => s?.user?.id).catch(() => undefined))
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Erro ao buscar convites pendentes",
+      invites: []
     }
   }
 }

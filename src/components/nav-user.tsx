@@ -2,7 +2,6 @@
 
 import {
   BadgeCheck,
-  Bell,
   ChevronsUpDown,
   LogOut,
   Sparkles,
@@ -130,19 +129,6 @@ export function NavUser({ user }: NavUserProps) {
                 >
                   <BadgeCheck className="size-4" />
                   Perfil
-                </Button>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start gap-2 px-2 opacity-50 cursor-not-allowed"
-                  disabled
-                >
-                  <Bell className="size-4" />
-                  <span className="flex items-center gap-2">
-                    Notificações
-                    <span className="text-xs text-muted-foreground">(Em breve)</span>
-                  </span>
                 </Button>
               </DropdownMenuItem>
             </DropdownMenuGroup>
