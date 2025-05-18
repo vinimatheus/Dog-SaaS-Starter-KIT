@@ -7,14 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { cookies } from "next/headers";
 import { Separator } from "@/components/ui/separator";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { DynamicBreadcrumb } from "@/components/dynamic-breadcrumb";
 import { unstable_cache } from "next/cache";
 
 export type AuthenticatedTeamsLayoutProps = {
@@ -80,19 +73,10 @@ export default async function AuthenticatedOrganizationLayout({
 								orientation="vertical"
 								className="mr-2 data-[orientation=vertical]:h-4"
 							/>
-							<Breadcrumb>
-								<BreadcrumbList>
-									<BreadcrumbItem className="hidden md:block">
-										<BreadcrumbLink href={`/${org_unique_id}`}>
-											{organization.name}
-										</BreadcrumbLink>
-									</BreadcrumbItem>
-									<BreadcrumbSeparator className="hidden md:block" />
-									<BreadcrumbItem>
-										<BreadcrumbPage>Dashboard</BreadcrumbPage>
-									</BreadcrumbItem>
-								</BreadcrumbList>
-							</Breadcrumb>
+							<DynamicBreadcrumb 
+								organizationName={organization.name} 
+								organizationId={org_unique_id} 
+							/>
 						</div>
 					</header>
 					<main className="flex flex-1 flex-col gap-4 p-4 pt-0">

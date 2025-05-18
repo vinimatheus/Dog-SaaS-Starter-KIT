@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Users, Mail } from "lucide-react";
 import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
+import { PageLayout } from "@/components/page-layout";
 
 // Componentes para carregamento
 const LoadingCard = () => (
@@ -177,43 +178,39 @@ export default async function OrganizationDashboard({
 	const { organization, stats } = data;
 
 	return (
-		<div className="container mx-auto py-8 px-4">
-			<div className="max-w-6xl mx-auto space-y-8">
-				<div className="flex justify-between items-center">
-					<div>
-						<h1 className="text-3xl font-bold">{organization.name}</h1>
-						<p className="text-gray-600 mt-1">Dashboard da organização</p>
-					</div>
-					<Button asChild>
-						<Link href={`/${org_unique_id}/config/members`}>
-							Gerenciar Membros
-						</Link>
-					</Button>
+		<PageLayout
+			title={organization.name}
+			description="Dashboard da organização"
+			headerActions={
+				<Button asChild>
+					<Link href={`/${org_unique_id}/config/members`}>
+						Gerenciar Membros
+					</Link>
+				</Button>
+			}
+		>
+			<Suspense fallback={
+				<div className="grid gap-4 md:grid-cols-2">
+					<LoadingCard />
+					<LoadingCard />
 				</div>
+			}>
+				<OrganizationStats stats={stats} />
+			</Suspense>
 
-				<Suspense fallback={
-					<div className="grid gap-4 md:grid-cols-2">
-						<LoadingCard />
-						<LoadingCard />
+			<Card>
+				<CardHeader>
+					<CardTitle>Atividade Recente</CardTitle>
+					<CardDescription>
+						Últimas atividades na organização
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<div className="text-sm text-muted-foreground">
+						Em breve: Histórico de atividades da organização
 					</div>
-				}>
-					<OrganizationStats stats={stats} />
-				</Suspense>
-
-				<Card>
-					<CardHeader>
-						<CardTitle>Atividade Recente</CardTitle>
-						<CardDescription>
-							Últimas atividades na organização
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<div className="text-sm text-muted-foreground">
-							Em breve: Histórico de atividades da organização
-						</div>
-					</CardContent>
-				</Card>
-			</div>
-		</div>
+				</CardContent>
+			</Card>
+		</PageLayout>
 	);
 }

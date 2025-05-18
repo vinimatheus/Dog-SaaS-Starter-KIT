@@ -1,73 +1,140 @@
 "use client"
 
-import { ChevronRight, type LucideIcon } from "lucide-react"
-
+import { usePathname } from "next/navigation"
+import Link from "next/link"
+import { memo } from "react"
+import { ChevronRight } from "lucide-react"
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import {
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
+  useSidebar
 } from "@/components/ui/sidebar"
+import type { Route, RouteItem } from "@/config/routes"
 
-export function NavMain({
-  items,
-}: {
-  items: {
-    title: string
-    url: string
-    icon?: LucideIcon
-    isActive?: boolean
-    items?: {
-      title: string
-      url: string
-    }[]
-  }[]
+// Componente memoizado para menu items
+const MenuItem = memo(function MenuItem({ 
+  route, 
+  pathname 
+}: { 
+  route: Route; 
+  pathname: string 
+}) {
+  const isActive = pathname === route.url || pathname.startsWith(`${route.url}/`);
+  const hasSubItems = route.items && route.items.length > 0;
+  const { state, setOpen } = useSidebar();
+  
+  if (!hasSubItems) {
+    // Se não tiver sub-itens, renderiza apenas o botão
+    return (
+      <SidebarMenuItem key={route.url}>
+        <SidebarMenuButton
+          asChild
+          isActive={isActive}
+          tooltip={route.title}
+        >
+          <Link href={route.url}>
+            {route.icon && <route.icon />}
+            <span>{route.title}</span>
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  }
+  
+  // Se tiver sub-itens, usa o Collapsible
+  return (
+    <Collapsible
+      key={route.title}
+      asChild
+      defaultOpen={isActive}
+      className="group/collapsible"
+    >
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton 
+            tooltip={route.title}
+            onClick={() => {
+              // Se a sidebar estiver recolhida, expande ela primeiro
+              if (state === "collapsed") {
+                setOpen(true);
+              }
+            }}
+          >
+            {route.icon && <route.icon />}
+            <span>{route.title}</span>
+            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub>
+            {route.items?.map((item) => (
+              <SubMenuItem 
+                key={item.url} 
+                item={item} 
+                pathname={pathname} 
+              />
+            ))}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
+  );
+});
+
+// Componente memoizado para sub-menu items
+const SubMenuItem = memo(function SubMenuItem({ 
+  item, 
+  pathname 
+}: { 
+  item: RouteItem; 
+  pathname: string 
 }) {
   return (
+    <SidebarMenuSubItem key={item.url}>
+      <SidebarMenuSubButton
+        asChild
+        isActive={pathname === item.url}
+      >
+        <Link href={item.url}>
+          {item.title}
+        </Link>
+      </SidebarMenuSubButton>
+    </SidebarMenuSubItem>
+  );
+});
+
+export function NavMain({
+  routes,
+  groupLabel = "Plataforma"
+}: {
+  routes: Route[];
+  groupLabel?: string;
+}) {
+  const pathname = usePathname();
+
+  return (
     <SidebarGroup>
-      <SidebarGroupLabel>Platform</SidebarGroupLabel>
+      <SidebarGroupLabel>{groupLabel}</SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) => (
-          <Collapsible
-            key={item.title}
-            asChild
-            defaultOpen={item.isActive}
-            className="group/collapsible"
-          >
-            <SidebarMenuItem>
-              <CollapsibleTrigger asChild>
-                <SidebarMenuButton tooltip={item.title}>
-                  {item.icon && <item.icon />}
-                  <span>{item.title}</span>
-                  <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                </SidebarMenuButton>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenuSub>
-                  {item.items?.map((subItem) => (
-                    <SidebarMenuSubItem key={subItem.title}>
-                      <SidebarMenuSubButton asChild>
-                        <a href={subItem.url}>
-                          <span>{subItem.title}</span>
-                        </a>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  ))}
-                </SidebarMenuSub>
-              </CollapsibleContent>
-            </SidebarMenuItem>
-          </Collapsible>
+        {routes.map((route) => (
+          <MenuItem 
+            key={route.url} 
+            route={route} 
+            pathname={pathname} 
+          />
         ))}
       </SidebarMenu>
     </SidebarGroup>
-  )
+  );
 }

@@ -6,6 +6,7 @@ import { Metadata } from "next";
 import { InviteActions } from "@/components/invite-actions";
 import { MembersList } from "@/components/organization/members-list";
 import { cn } from "@/lib/utils";
+import { PageLayout } from "@/components/page-layout";
 
 interface MetadataProps {
 	params: Promise<{
@@ -80,17 +81,11 @@ export default async function MembersPage({
 	const userRole = currentUserOrg.role;
 
 	return (
-		<div className="w-full py-6 px-4">
+		<PageLayout
+			title="Membros"
+			description="Gerencie os membros da organização"
+		>
 			<div className="grid gap-6">
-				<div className="flex justify-between items-center">
-					<div>
-						<h1 className="text-xl font-semibold">Membros</h1>
-						<p className="text-sm text-muted-foreground mt-0.5">
-							Gerencie os membros da organização
-						</p>
-					</div>
-				</div>
-	
 				{/* Formulário de Convite - Apenas para admin e owner */}
 				{(userRole === "ADMIN" || userRole === "OWNER") && (
 				<div className="bg-card rounded-md border border-muted p-4 w-full">
@@ -159,8 +154,6 @@ export default async function MembersPage({
 					</div>
 				)}
 			</div>
-		</div>
+		</PageLayout>
 	);
-	
-	
 } 

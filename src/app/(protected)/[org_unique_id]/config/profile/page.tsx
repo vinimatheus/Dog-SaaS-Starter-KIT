@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { UserCircle } from "lucide-react";
 import Image from "next/image";
 import ClientAccountLinking from "./client-account-linking";
+import { PageLayout } from "@/components/page-layout";
 
 interface MetadataProps {
 	params: Promise<{
@@ -87,14 +88,10 @@ export default async function ProfilePage({
 	const linkedProviders = user.accounts.map(account => account.provider);
 
 	return (
-		<div className="space-y-6">
-			<div>
-				<h1 className="text-2xl font-bold tracking-tight">Meu Perfil</h1>
-				<p className="text-muted-foreground">
-					Gerencie suas informações pessoais
-				</p>
-			</div>
-			
+		<PageLayout
+			title="Meu Perfil"
+			description="Gerencie suas informações pessoais"
+		>
 			<div className="grid gap-6">
 				<Card>
 					<CardHeader className="pb-3">
@@ -132,6 +129,6 @@ export default async function ProfilePage({
 					linkedProviders={linkedProviders}
 				/>
 			</div>
-		</div>
+		</PageLayout>
 	);
 } 

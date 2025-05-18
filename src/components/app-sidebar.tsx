@@ -1,7 +1,6 @@
 "use client"
 
-import { usePathname } from "next/navigation"
-import Link from "next/link"
+
 import { useSession } from "next-auth/react"
 import { 
   Sidebar, 
@@ -9,77 +8,15 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
   SidebarFooter,
   SidebarContent
 } from "@/components/ui/sidebar"
 import { TeamSwitcher } from "@/components/team-switcher"
 import { NavUser } from "@/components/nav-user"
+import { NavMain } from "@/components/nav-main"
 import { useOrganization } from "@/contexts/organization-context"
 import { getOrganizationRoutes } from "@/config/routes"
-import type { Route, RouteItem } from "@/config/routes"
 import { useMemo, memo } from "react"
-
-// Componente memoizado para menu items
-const MenuItem = memo(function MenuItem({ 
-  route, 
-  pathname 
-}: { 
-  route: Route; 
-  pathname: string 
-}) {
-  const isActive = pathname === route.url || pathname.startsWith(`${route.url}/`);
-  
-  return (
-    <SidebarMenuItem key={route.url}>
-      <SidebarMenuButton
-        asChild
-        isActive={isActive}
-        tooltip={route.title}
-      >
-        <Link href={route.url}>
-          {route.icon && <route.icon />}
-          <span>{route.title}</span>
-        </Link>
-      </SidebarMenuButton>
-      {route.items && route.items.length > 0 && (
-        <SidebarMenuSub>
-          {route.items.map((item) => (
-            <SubMenuItem 
-              key={item.url} 
-              item={item} 
-              pathname={pathname} 
-            />
-          ))}
-        </SidebarMenuSub>
-      )}
-    </SidebarMenuItem>
-  );
-});
-
-// Componente memoizado para sub-menu items
-const SubMenuItem = memo(function SubMenuItem({ 
-  item, 
-  pathname 
-}: { 
-  item: RouteItem; 
-  pathname: string 
-}) {
-  return (
-    <SidebarMenuSubItem key={item.url}>
-      <SidebarMenuSubButton
-        asChild
-        isActive={pathname === item.url}
-      >
-        <Link href={item.url}>
-          {item.title}
-        </Link>
-      </SidebarMenuSubButton>
-    </SidebarMenuSubItem>
-  );
-});
 
 // Componente para quando não há organização selecionada
 const NoOrganizationSidebar = memo(function NoOrganizationSidebar({ 
@@ -114,7 +51,6 @@ const NoOrganizationSidebar = memo(function NoOrganizationSidebar({
 });
 
 export function AppSidebar() {
-  const pathname = usePathname()
   const { organization } = useOrganization()
   const { data: session } = useSession()
   
@@ -134,13 +70,7 @@ export function AppSidebar() {
         <TeamSwitcher />
       </SidebarHeader>
       <SidebarContent>
-        {routes.map((route) => (
-          <MenuItem 
-            key={route.url} 
-            route={route} 
-            pathname={pathname} 
-          />
-        ))}
+        <NavMain routes={routes} groupLabel="Plataforma" />
       </SidebarContent>
       {session?.user && (
         <SidebarFooter>
