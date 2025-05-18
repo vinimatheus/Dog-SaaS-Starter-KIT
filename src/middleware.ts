@@ -26,9 +26,7 @@ function matchOrganizationRoute(pathname: string): RouteMatch {
 		pathname.startsWith("/_next") ||
 		pathname.startsWith("/api") ||
 		pathname === "/" ||
-		pathname === "" ||
-		pathname === "/test-lighthouse" ||
-		pathname === "/login-bypass"
+		pathname === ""
 	) {
 		return { isOrgRoute: false };
 	}
