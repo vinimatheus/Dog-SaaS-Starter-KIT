@@ -82,6 +82,9 @@ export const updateOrganizationAction = async (
     })
 
     revalidatePath(`/${uniqueOrgId}`)
+    revalidatePath("/", "layout")
+    revalidatePath("/organizations", "layout")
+    revalidatePath("/api/organizations")
     
     return { success: true }
   } catch (error) {

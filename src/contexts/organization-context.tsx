@@ -5,6 +5,7 @@ import { createContext, useContext, ReactNode } from "react";
 
 interface OrganizationContextType {
 	organization: Organization | null;
+	refetchOrganization?: () => Promise<void>;
 }
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
@@ -12,12 +13,14 @@ const OrganizationContext = createContext<OrganizationContextType | undefined>(u
 export function OrganizationProvider({
 	children,
 	organization,
+	refetchOrganization
 }: {
 	children: ReactNode;
 	organization: Organization | null;
+	refetchOrganization?: () => Promise<void>;
 }) {
 	return (
-		<OrganizationContext.Provider value={{ organization }}>
+		<OrganizationContext.Provider value={{ organization, refetchOrganization }}>
 			{children}
 		</OrganizationContext.Provider>
 	);

@@ -1,11 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { memo, useCallback, useMemo } from "react"
+import { memo, useCallback, useMemo, useEffect } from "react"
 import { ChevronsUpDown, Plus, Building2, Check } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { startTransition } from "react"
+import { useOrganization } from "@/contexts/organization-context"
 
 import {
   DropdownMenu,
@@ -37,7 +38,6 @@ interface Organization {
   name: string
 }
 
-
 const OrganizationItem = memo(function OrganizationItem({
   org,
   isActive,
@@ -48,8 +48,8 @@ const OrganizationItem = memo(function OrganizationItem({
   onSelect: (org: Organization) => void
 }) {
   const handleClick = useCallback(() => {
-    onSelect(org);
-  }, [org, onSelect]);
+    onSelect(org)
+  }, [org, onSelect])
 
   return (
     <DropdownMenuItem
@@ -71,9 +71,8 @@ const OrganizationItem = memo(function OrganizationItem({
         )}
       />
     </DropdownMenuItem>
-  );
-});
-
+  )
+})
 
 export function TeamSwitcher() {
   const { isMobile } = useSidebar()
@@ -82,36 +81,42 @@ export function TeamSwitcher() {
   const currentOrgUniqueId = useMemo(() => pathname.split("/")[1], [pathname])
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [dropdownOpen, setDropdownOpen] = React.useState(false)
+  const { organization, refetchOrganization } = useOrganization()
 
   const { organizations, loading, error, refetch } = useOrganizations()
 
-  
-  const currentOrg = useMemo(() => 
-    organizations.find((org) => org.uniqueId === currentOrgUniqueId),
-    [organizations, currentOrgUniqueId]
-  );
+  useEffect(() => {
+    if (dropdownOpen) {
+      refetch()
+      refetchOrganization?.()
+    }
+  }, [dropdownOpen, refetch, refetchOrganization])
 
-  
+  const currentOrg = useMemo(() => 
+    organizations.find((org) => org.uniqueId === currentOrgUniqueId) || organization,
+    [organizations, currentOrgUniqueId, organization]
+  )
+
   const handleCreateOrganization = useCallback(() => {
     setDropdownOpen(false)
     startTransition(() => {
       setDialogOpen(true)
     })
-  }, []);
+  }, [])
 
   const handleSuccess = useCallback(async () => {
     setDialogOpen(false)
     await refetch()
-  }, [refetch]);
+    await refetchOrganization?.()
+  }, [refetch, refetchOrganization])
 
   const handleSelectOrganization = useCallback((org: Organization) => {
     startTransition(() => {
       router.push(`/${org.uniqueId}`)
     })
     setDropdownOpen(false)
-  }, [router]);
+  }, [router])
 
-  
   const renderOrganizationList = useCallback(() => {
     if (loading) {
       return <DropdownMenuItem disabled>Carregando...</DropdownMenuItem>
@@ -137,8 +142,8 @@ export function TeamSwitcher() {
         onSelect={handleSelectOrganization}
       />
     ))
-  }, [loading, error, organizations, currentOrgUniqueId, handleSelectOrganization]);
-  
+  }, [loading, error, organizations, currentOrgUniqueId, handleSelectOrganization])
+
   return (
     <>
       <SidebarMenu>

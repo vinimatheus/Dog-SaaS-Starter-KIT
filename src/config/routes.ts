@@ -50,6 +50,10 @@ export const routes: Route[] = [
         title: "Membros",
         url: "/members",
       },
+      {
+        title: "Organização",
+        url: "/organization",
+      },
     ],
   }
 ]

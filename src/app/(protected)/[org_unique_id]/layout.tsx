@@ -19,8 +19,6 @@ export type AuthenticatedTeamsLayoutProps = {
 	}>;
 };
 
-export const revalidate = 300;
-
 const getOrganization = unstable_cache(
 	async (uniqueId: string, userId: string) => {
 		return prisma.organization.findUnique({
@@ -35,7 +33,7 @@ const getOrganization = unstable_cache(
 		});
 	},
 	["organization-access"],
-	{ revalidate }
+	{ revalidate: false }
 );
 
 export default async function AuthenticatedOrganizationLayout({
@@ -62,7 +60,16 @@ export default async function AuthenticatedOrganizationLayout({
 	}
 
 	return (
-		<OrganizationProvider organization={organization}>
+		<OrganizationProvider 
+			organization={organization}
+			refetchOrganization={async () => {
+				"use server"
+				const newOrg = await getOrganization(org_unique_id, userId)
+				if (newOrg) {
+					organization.name = newOrg.name
+				}
+			}}
+		>
 			<SidebarProvider defaultOpen={defaultOpen}>
 				<AppSidebar />
 				<SidebarInset>

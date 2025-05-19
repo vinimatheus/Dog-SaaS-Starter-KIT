@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from "react"
 
 type Organization = {
@@ -15,7 +14,12 @@ export function useOrganizations() {
   const fetchOrganizations = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await fetch("/api/organizations")
+      const res = await fetch("/api/organizations", {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache"
+        }
+      })
       if (!res.ok) throw new Error("Erro ao buscar organizações")
       const data: Organization[] = await res.json()
       setOrganizations(data)
