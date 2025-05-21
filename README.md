@@ -208,6 +208,100 @@ O projeto utiliza NextAuth.js v5 para autenticação, oferecendo múltiplos mét
 - Proteção de rotas
 - Validação de email
 
+## 💳 Integração com Stripe
+
+O projeto inclui integração completa com Stripe para gerenciamento de assinaturas e pagamentos.
+
+### Configuração do Stripe
+
+1. Crie uma conta no [Stripe](https://stripe.com)
+2. Obtenha suas chaves de API no [Dashboard do Stripe](https://dashboard.stripe.com/apikeys)
+3. Adicione as seguintes variáveis de ambiente:
+
+```env
+# Stripe
+STRIPE_SECRET_KEY="sk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+STRIPE_PRO_PLAN_PRICE_ID="price_..."
+```
+
+### Testes com Cartões
+
+Para testar pagamentos, use os seguintes cartões de teste:
+
+- **Sucesso**: `4242 4242 4242 4242`
+- **Falha**: `4000 0000 0000 0002`
+- **Requer Autenticação**: `4000 0025 0000 3155`
+
+Outros dados de teste:
+- Data de validade: Qualquer data futura
+- CVC: Qualquer número de 3 dígitos
+- CEP: Qualquer CEP válido
+
+### Webhook do Stripe
+
+Para desenvolvimento local, use o Stripe CLI para receber eventos do webhook:
+
+1. Instale o [Stripe CLI](https://stripe.com/docs/stripe-cli)
+2. Faça login:
+```bash
+stripe login
+```
+
+3. Inicie o webhook listener:
+```bash
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+```
+
+4. Copie o webhook signing secret fornecido e adicione ao seu `.env`:
+```env
+STRIPE_WEBHOOK_SECRET="whsec_..."
+```
+
+### Funcionalidades Implementadas
+
+- **Checkout de Assinatura**
+  - Criação de sessão de checkout
+  - Redirecionamento para página de pagamento
+  - Processamento de pagamento
+  - Atualização automática do plano
+
+- **Portal do Cliente**
+  - Gerenciamento de assinatura
+  - Atualização de método de pagamento
+  - Visualização de faturas
+  - Cancelamento de assinatura
+
+- **Webhooks**
+  - Processamento de eventos de pagamento
+  - Atualização de status de assinatura
+  - Cancelamento automático
+  - Confirmação de pagamento
+
+### Fluxo de Assinatura
+
+1. Usuário clica em "Fazer Upgrade"
+2. É redirecionado para página de checkout do Stripe
+3. Após pagamento bem-sucedido:
+   - Webhook recebe evento `checkout.session.completed`
+   - Plano é atualizado para PRO
+   - Usuário é redirecionado para dashboard
+
+### Cancelamento
+
+1. Usuário acessa portal do cliente
+2. Seleciona "Cancelar Assinatura"
+3. Assinatura é cancelada ao final do período
+4. Webhook recebe evento `customer.subscription.deleted`
+5. Plano é atualizado para FREE
+
+### Segurança
+
+- Verificação de assinatura de webhook
+- Validação de permissões de usuário
+- Proteção contra duplicação de assinaturas
+- Verificação de status de pagamento
+
 ## 🎨 UI/UX
 
 O projeto utiliza o [shadcn/ui](https://ui.shadcn.com), uma coleção de componentes reutilizáveis construídos com Radix UI e Tailwind CSS:

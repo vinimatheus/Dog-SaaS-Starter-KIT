@@ -11,6 +11,7 @@ import { DynamicBreadcrumb } from "@/components/dynamic-breadcrumb";
 import { unstable_cache } from "next/cache";
 import { NotificationMenu } from "@/components/notification/notification-menu";
 import { PendingInvitesMenu } from "@/components/pending-invites-menu";
+import { Toaster } from "sonner";
  
 export type AuthenticatedTeamsLayoutProps = {
 	children: React.ReactNode;
@@ -26,6 +27,13 @@ const getOrganization = unstable_cache(
 				uniqueId,
 				User_Organization: {
 					some: {
+						user_id: userId,
+					},
+				},
+			},
+			include: {
+				User_Organization: {
+					where: {
 						user_id: userId,
 					},
 				},
@@ -57,6 +65,14 @@ export default async function AuthenticatedOrganizationLayout({
 
 	if (!organization) {
 		redirect("/organizations");
+	}
+
+	const userOrg = organization.User_Organization[0];
+	const isOwner = userOrg.role === "OWNER";
+
+	// Se não for o dono e a organização estiver no plano FREE, redireciona
+	if (!isOwner && organization.plan === "FREE") {
+		redirect("/organizations?access_denied=true");
 	}
 
 	return (
@@ -95,6 +111,7 @@ export default async function AuthenticatedOrganizationLayout({
 					</main>
 				</SidebarInset>
 			</SidebarProvider>
+			<Toaster richColors position="top-right" />
 		</OrganizationProvider>
 	);
 }

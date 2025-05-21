@@ -5,24 +5,16 @@ import { prisma } from "@/lib/prisma"
 import { Resend } from "resend"
 import { revalidatePath } from "next/cache"
 import { addDays } from "date-fns"
-import { Role, InviteStatus } from "@prisma/client"
+import { Role, InviteStatus, PlanType } from "@prisma/client"
 import { z } from "zod"
-import { randomUUID } from "crypto"
 import { unstable_cache } from "next/cache"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 const InviteSchema = z.object({
-  email: z.string().email().toLowerCase(),
-  organizationId: z.string().min(1, "ID da organização é obrigatório"),
-  role: z.enum(["OWNER", "ADMIN", "USER"]).default("USER"),
+  email: z.string().email(),
+  role: z.nativeEnum(Role),
 })
-
-interface InviteResult {
-  success: boolean
-  error?: string
-  inviteId?: string
-}
 
 interface ManageInviteResult {
   success: boolean
@@ -220,148 +212,98 @@ export async function deleteInviteAction(inviteId: string): Promise<ManageInvite
   }
 }
 
-export async function inviteMemberAction(formData: FormData): Promise<InviteResult> {
+export async function inviteMemberAction(formData: FormData) {
   try {
     const session = await auth()
+    const userId = session?.user?.id
 
-    if (!session?.user?.id) {
-      return { success: false, error: "Você precisa estar logado para convidar membros" }
+    if (!userId) {
+      return { success: false, error: "Não autorizado" }
     }
 
-    const email = (formData.get("email") as string || "").trim().toLowerCase();
-    const organizationId = formData.get("organizationId") as string;
-    const role = (formData.get("role") as Role) || "USER";
+    const email = formData.get("email") as string
+    const role = formData.get("role") as Role
+    const organizationId = formData.get("organizationId") as string
 
-    console.log("Dados recebidos:", { email, organizationId, role });
-
-    if (!organizationId) {
-      return { success: false, error: "ID da organização não fornecido" };
+    if (!email || !role || !organizationId) {
+      return { success: false, error: "Dados inválidos" }
     }
 
-    const rawData = {
-      email,
-      organizationId,
-      role,
-    }
-
-    const result = InviteSchema.safeParse(rawData)
-    if (!result.success) {
-      const errorMsg = result.error.errors.map(err => `${err.path}: ${err.message}`).join(', ');
-      return { success: false, error: errorMsg }
-    }
-
-    const { email: validatedEmail, organizationId: validatedOrgId, role: validatedRole } = result.data
-
-    if (session.user.email?.toLowerCase() === validatedEmail) {
-      return { success: false, error: "Você não pode convidar a si mesmo" }
-    }
-
-    return await prisma.$transaction(async (tx) => {
-      const [organization, userOrg, existingInvite, existingMember, anyExistingInvite] = await Promise.all([
-        tx.organization.findUnique({ where: { id: validatedOrgId } }),
-        tx.user_Organization.findFirst({
-          where: {
-            user_id: session.user.id,
-            organization_id: validatedOrgId,
-            role: { in: ["OWNER", "ADMIN"] },
-          },
-        }),
-        tx.invite.findFirst({
-          where: {
-            AND: [
-              { email: validatedEmail },
-              { organization_id: validatedOrgId },
-              { status: "PENDING" },
-            ],
-          },
-        }),
-        tx.user_Organization.findFirst({
-          where: {
-            organization_id: validatedOrgId,
-            user: { email: validatedEmail },
-          },
-        }),
-        tx.invite.findFirst({
-          where: {
-            AND: [
-              { email: validatedEmail },
-              { organization_id: validatedOrgId },
-            ],
-          },
-        }),
-      ])
-
-      if (!organization) {
-        return { success: false, error: "Organização não encontrada" }
-      }
-
-      if (!userOrg) {
-        return { success: false, error: "Você não tem permissão para convidar membros" }
-      }
-
-      if (existingInvite) {
-        return { success: false, error: "Já existe um convite pendente para este email" }
-      }
-
-      if (existingMember) {
-        return { success: false, error: "Este usuário já é membro da organização" }
-      }
-
-      let invite;
-      
-      if (anyExistingInvite) {
-        if (anyExistingInvite.status === "ACCEPTED") {
-          const isStillMember = await tx.user_Organization.findFirst({
-            where: {
-              organization_id: validatedOrgId,
-              user: { email: validatedEmail },
-            },
-          });
-          
-          if (isStillMember) {
-            return { success: false, error: "Este usuário já é membro da organização" }
-          }
-        }
-        
-        invite = await tx.invite.update({
-          where: { id: anyExistingInvite.id },
-          data: {
-            role: validatedRole,
-            status: "PENDING",
-            expires_at: addDays(new Date(), 7),
-            updated_at: new Date(),
-          }
-        });
-      } else {
-        invite = await tx.invite.create({
-          data: {
-            id: randomUUID(),
-            email: validatedEmail,
-            organization_id: validatedOrgId,
-            invited_by_id: session.user.id,
-            role: validatedRole,
-            expires_at: addDays(new Date(), 7),
-          },
-        });
-      }
-
-      const emailSent = await sendInviteEmail(invite, organization)
-      if (!emailSent) {
-        await tx.invite.update({
-          where: { id: invite.id },
-          data: { status: "EXPIRED" },
-        })
-        return { success: false, error: "Erro ao enviar o email do convite" }
-      }
-
-      revalidatePath(`/${organization.uniqueId}`)
-      return { success: true, inviteId: invite.id }
+    const organization = await prisma.organization.findUnique({
+      where: { id: organizationId },
     })
+
+    if (!organization) {
+      return { success: false, error: "Organização não encontrada" }
+    }
+
+    if (organization.plan === PlanType.FREE) {
+      return { success: false, error: "Organização está no plano gratuito" }
+    }
+
+    const result = InviteSchema.safeParse({
+      email,
+      role,
+    })
+
+    if (!result.success) {
+      throw new Error(result.error.errors[0].message)
+    }
+
+    const { email: parsedEmail, role: parsedRole } = result.data
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email: parsedEmail },
+    })
+
+    if (existingUser) {
+      const existingMembership = await prisma.user_Organization.findUnique({
+        where: {
+          user_id_organization_id: {
+            user_id: existingUser.id,
+            organization_id: organizationId,
+          },
+        },
+      })
+
+      if (existingMembership) {
+        throw new Error("Usuário já é membro desta organização")
+      }
+    }
+
+    const existingInvite = await prisma.invite.findUnique({
+      where: {
+        email_organization_id: {
+          email: parsedEmail,
+          organization_id: organizationId,
+        },
+      },
+    })
+
+    if (existingInvite && existingInvite.status === "PENDING") {
+      throw new Error("Já existe um convite pendente para este email")
+    }
+
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + 7) // Convite válido por 7 dias
+
+    await prisma.invite.create({
+      data: {
+        email: parsedEmail,
+        role: parsedRole,
+        organization_id: organizationId,
+        invited_by_id: userId,
+        expires_at: expiresAt,
+      },
+    })
+
+    revalidatePath(`/${organization.uniqueId}/config/members`)
+    return { success: true }
   } catch (error) {
-    logError("InviteMember", error, auth().then(s => s?.user?.id).catch(() => undefined))
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Erro ao processar convite",
+    console.error("Erro ao convidar membro:", error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Erro ao convidar membro" 
     }
   }
 }

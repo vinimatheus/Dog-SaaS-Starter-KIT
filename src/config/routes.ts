@@ -54,6 +54,10 @@ export const routes: Route[] = [
         title: "Organização",
         url: "/organization",
       },
+      {
+        title: "Assinatura",
+        url: "/subscription",
+      },
     ],
   }
 ]

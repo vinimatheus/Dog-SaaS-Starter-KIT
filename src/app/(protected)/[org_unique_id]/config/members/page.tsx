@@ -90,7 +90,7 @@ export default async function MembersPage({
 				{(userRole === "ADMIN" || userRole === "OWNER") && (
 				<div className="bg-card rounded-md border border-muted p-4 w-full">
 					<h2 className="text-sm font-medium mb-3">Convidar novo membro</h2>
-					<InviteMemberForm organizationId={organization.id} />
+					<InviteMemberForm organizationId={organization.id} plan={organization.plan} />
 				</div>
 				)}
 	
