@@ -140,44 +140,46 @@ export function SubscriptionManager({
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <span>Plano Gratuito</span>
-              {plan === "FREE" && (
-                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                  Atual
-                </span>
-              )}
-            </CardTitle>
-            <CardDescription>
-              Perfeito para começar
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-primary" />
-                <span className="text-sm">Até 1 membros</span>
+        {plan !== "PRO" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span>Plano Gratuito</span>
+                {plan === "FREE" && (
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                    Atual
+                  </span>
+                )}
+              </CardTitle>
+              <CardDescription>
+                Perfeito para começar
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-primary" />
+                  <span className="text-sm">Até 1 membros</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-primary" />
+                  <span className="text-sm">Funcionalidades básicas</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-primary" />
-                <span className="text-sm">Funcionalidades básicas</span>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button
-              variant="outline"
-              className="w-full"
-              disabled={plan === "FREE" || !isOwner}
-            >
-              {plan === "FREE" ? "Plano Atual" : "Selecionar"}
-            </Button>
-          </CardFooter>
-        </Card>
+            </CardContent>
+            <CardFooter>
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={plan === "FREE" || !isOwner}
+              >
+                {plan === "FREE" ? "Plano Atual" : "Selecionar"}
+              </Button>
+            </CardFooter>
+          </Card>
+        )}
 
-        <Card className="border-primary/50">
+        <Card className={plan === "PRO" ? "md:col-span-2" : "border-primary/50"}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Crown className="h-4 w-4 text-primary" />
