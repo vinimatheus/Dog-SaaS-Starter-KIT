@@ -185,3 +185,18 @@ enum NotificationType {
   ORGANIZATION
   MEMBER
 }
+
+model SecurityLog {
+  id        String   @id @default(cuid())
+  eventType String
+  userId    String?
+  ip        String?
+  userAgent String?
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([eventType])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([eventType, userId, createdAt])
+}

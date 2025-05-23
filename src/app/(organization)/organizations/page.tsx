@@ -2,42 +2,41 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Users, Plus } from "lucide-react";
-import { Organization, Invite, User_Organization, User } from "@prisma/client";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { CreateOrganizationForm } from "@/components/organization/create-organization-form";
+import { Users, ArrowRight } from "lucide-react";
+import { Organization, User_Organization, User } from "@prisma/client";
 import { PendingInvites } from "@/components/pending-invites";
+import { Logo } from "@/components/logo";
 
-type OrganizationWithMembers = Organization & {
+type OrganizationWithMembers = Pick<Organization, 'id' | 'name' | 'uniqueId' | 'plan'> & {
   User_Organization: (User_Organization & {
-    user: User;
+    user: Pick<User, 'id' | 'name' | 'email'>;
   })[];
-  _count: {
-    User_Organization: number;
-  };
 };
 
-type InviteWithOrg = Invite & {
-  organization: Organization;
-};
+interface PageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}
 
-export default async function OrganizationsPage() {
+export default async function OrganizationsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
   const session = await auth();
 
   if (!session?.user?.id || !session.user.email) {
     redirect("/login");
   }
 
-  
+  // Busca o usuário para verificar se tem nome
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { name: true }
+  });
+
+  // Se o usuário não tem nome, redireciona para onboarding
+  if (!user?.name) {
+    redirect("/onboarding");
+  }
+
   const [organizations, pendingInvites] = await Promise.all([
-    
     prisma.organization.findMany({
       where: {
         User_Organization: {
@@ -46,20 +45,25 @@ export default async function OrganizationsPage() {
           },
         },
       },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        uniqueId: true,
+        plan: true,
         User_Organization: {
           include: {
-            user: true,
-          },
-        },
-        _count: {
-          select: {
-            User_Organization: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              }
+            },
           },
         },
       },
     }) as Promise<OrganizationWithMembers[]>,
-    
+
     prisma.invite.findMany({
       where: {
         email: session.user.email,
@@ -71,104 +75,104 @@ export default async function OrganizationsPage() {
       include: {
         organization: true,
       },
-    }) as Promise<InviteWithOrg[]>,
+    }),
   ]);
 
+  // Se não houver organizações e não houver convites pendentes, redireciona para onboarding
+  if (organizations.length === 0 && pendingInvites.length === 0) {
+    redirect("/onboarding");
+  }
+
+  const showAccessDenied = params?.access_denied === "true";
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      <div className="container mx-auto py-12 px-4">
         <div className="max-w-4xl mx-auto space-y-8">
-          {/* Header */}
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold">Organizações</h1>
-              <p className="text-gray-600 mt-1">
-                Gerencie suas organizações e convites
-              </p>
-            </div>
-            <div>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Nova Organização
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Criar Nova Organização</DialogTitle>
-                    <DialogDescription>
-                      Crie uma nova organização para gerenciar seus projetos e equipes.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <CreateOrganizationForm />
-                </DialogContent>
-              </Dialog>
-            </div>
+          {/* Brand */}
+          <div className="flex justify-center mb-8">
+            <Logo size="lg" />
           </div>
+
+          {/* Header */}
+          <div className="text-center space-y-3">
+            <h2 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              Selecione uma Organização
+            </h2>
+            <p className="text-muted-foreground text-lg">
+              Escolha uma organização para continuar
+            </p>
+          </div>
+
+          {showAccessDenied && (
+            <div className="bg-destructive/10 border border-destructive text-destructive rounded-lg px-4 py-3 text-center font-medium">
+              Você não tem permissão para acessar esta organização. Fale com o administrador.
+            </div>
+          )}
 
           {/* Convites Pendentes */}
           {pendingInvites.length > 0 && (
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-card rounded-xl shadow-lg border border-border/50 p-6">
               <PendingInvites />
             </div>
           )}
 
           {/* Lista de Organizações */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="h-5 w-5 text-primary" />
-              <h2 className="text-xl font-semibold">Suas Organizações</h2>
+          <div className="bg-card rounded-xl shadow-lg border border-border/50 p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <Users className="h-6 w-6 text-primary" />
+              <h2 className="text-2xl font-semibold">Suas Organizações</h2>
             </div>
             {organizations.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2">
                 {organizations.map((org) => (
-                  <div
+                  <Button
                     key={org.id}
-                    className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    asChild
+                    variant="outline"
+                    className="h-auto p-6 justify-start hover:bg-accent/50 transition-colors group relative overflow-hidden"
                   >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-medium">{org.name}</h3>
-                        <p className="text-sm text-gray-600">
-                          {org._count.User_Organization} membros
-                        </p>
-                      </div>
-                      <Button
-                        asChild
-                        variant="ghost"
-                        size="sm"
-                      >
-                        <a href={`/${org.uniqueId}`}>
-                          Acessar
-                        </a>
-                      </Button>
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {org.User_Organization.map((member) => (
-                        <div
-                          key={`${member.user_id}-${member.organization_id}`}
-                          className="flex items-center gap-2 text-sm text-gray-600"
-                        >
-                          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                            {member.user.name?.[0]?.toUpperCase() || "?"}
-                          </div>
-                          <span>{member.user.name || member.user.email}</span>
+                    <a href={`/${org.uniqueId}`}>
+                      <div className="flex flex-col items-start gap-3">
+                        <div className="flex items-center justify-between w-full">
+                          <h3 className="font-semibold text-lg">{org.name}</h3>
+                          <span className="text-sm text-muted-foreground">
+                            {org.User_Organization.length} membros
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                        <div className="flex flex-wrap gap-2">
+                          {org.User_Organization.slice(0, 3).map((member) => (
+                            <div
+                              key={`${member.user_id}-${member.organization_id}`}
+                              className="flex items-center gap-2 text-sm text-muted-foreground"
+                            >
+                              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+                                {member.user.name?.[0]?.toUpperCase() || "?"}
+                              </div>
+                              <span>
+                                {member.user.name || member.user.email}
+                              </span>
+                            </div>
+                          ))}
+                          {org.User_Organization.length > 3 && (
+                            <span className="text-sm text-muted-foreground">
+                              +{org.User_Organization.length - 3} outros
+                            </span>
+                          )}
+                        </div>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <ArrowRight className="h-5 w-5 text-primary" />
+                        </div>
+                      </div>
+                    </a>
+                  </Button>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-500 mb-4">
+              <div className="text-center py-12">
+                <p className="text-muted-foreground text-lg">
                   Você ainda não participa de nenhuma organização
                 </p>
-                <div>
-                <CreateOrganizationForm />
-
-                </div>
               </div>
             )}
           </div>

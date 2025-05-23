@@ -5,10 +5,8 @@ import { useState, useEffect, useRef } from "react"
 import { signIn, getCsrfToken } from "next-auth/react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Dog } from "lucide-react"
 import ReCAPTCHA from "react-google-recaptcha"
 
-import { cn } from "@/lib/utils"
 import {
   Form,
   FormControl,
@@ -19,6 +17,7 @@ import {
 } from "@/components/ui/form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Logo } from "@/components/logo"
 
 const loginSchema = z.object({
   email: z.string()
@@ -32,8 +31,6 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 const isRecaptchaEnabled = !isDevelopment && process.env.NEXT_PUBLIC_ENABLE_RECAPTCHA === 'true';
 
 export function LoginForm({
-  className,
-  ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const [isLoading, setIsLoading] = useState(false)
   const [magicLinkSent, setMagicLinkSent] = useState(false)
@@ -171,18 +168,17 @@ export function LoginForm({
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <div className="flex flex-col items-center gap-2">
-        <a
-          href="#"
-          className="flex flex-col items-center gap-2 font-medium"
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-md">
-            <Dog className="size-6" />
-          </div>
-          <span className="sr-only">Dog Inc.</span>
-        </a>
-        <h1 className="text-xl font-bold">Bem vindo ao Dog Inc.</h1>
+    <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+      <div className="flex flex-col space-y-2 text-center">
+        <div className="flex justify-center">
+          <Logo size="md" />
+        </div>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Bem-vindo de volta
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Entre com seu email para continuar
+        </p>
       </div>
 
       <Form {...form}>
