@@ -29,6 +29,7 @@ const loginSchema = z.object({
 type LoginValues = z.infer<typeof loginSchema>
 
 const isDevelopment = process.env.NODE_ENV === 'development';
+const isRecaptchaEnabled = !isDevelopment && process.env.NEXT_PUBLIC_ENABLE_RECAPTCHA === 'true';
 
 export function LoginForm({
   className,
@@ -67,7 +68,7 @@ export function LoginForm({
       return
     }
 
-    if (!isDevelopment && !recaptchaToken) {
+    if (isRecaptchaEnabled && !recaptchaToken) {
       setError("Por favor, complete a verificação reCAPTCHA")
       return
     }
@@ -130,7 +131,7 @@ export function LoginForm({
       return
     }
 
-    if (!isDevelopment && !recaptchaToken) {
+    if (isRecaptchaEnabled && !recaptchaToken) {
       setError("Por favor, complete a verificação reCAPTCHA")
       return
     }
@@ -209,7 +210,7 @@ export function LoginForm({
             )}
           />
 
-          {!isDevelopment && (
+          {isRecaptchaEnabled && (
             <div className="flex flex-col items-center my-4">
               <div className="mb-2 text-sm text-muted-foreground">
                 Por favor, complete a verificação de segurança abaixo:
