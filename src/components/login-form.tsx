@@ -41,8 +41,18 @@ export function LoginForm({
 
   useEffect(() => {
     const loadCsrfToken = async () => {
-      const token = await getCsrfToken()
-      setCsrfToken(token)
+      try {
+        const token = await getCsrfToken()
+        if (!token) {
+          console.error("CSRF token não encontrado")
+          setError("Erro de segurança: Token CSRF não encontrado")
+          return
+        }
+        setCsrfToken(token)
+      } catch (error) {
+        console.error("Erro ao carregar CSRF token:", error)
+        setError("Erro de segurança ao carregar token")
+      }
     }
     loadCsrfToken()
   }, [])
@@ -74,10 +84,6 @@ export function LoginForm({
     setError(null)
 
     try {
-      console.log("Token reCAPTCHA obtido:", 
-        isDevelopment ? 'DESENVOLVIMENTO - reCAPTCHA ignorado' : recaptchaToken?.substring(0, 10) + "..."
-      )
-      
       const callbackUrlObj = new URL("/organizations", window.location.origin)
       
       if (!isDevelopment && recaptchaToken) {
@@ -88,8 +94,6 @@ export function LoginForm({
       
       const callbackUrl = callbackUrlObj.toString()
       
-      console.log("URL de callback:", callbackUrl.substring(0, 50) + "...")
-      
       const result = await signIn("resend", {
         email: values.email,
         redirect: false,
@@ -97,11 +101,16 @@ export function LoginForm({
         csrfToken,
       })
 
-      console.log("Resultado do signIn:", result)
-
       if (result?.error) {
         if (result.error === "CSRF") {
-          setError("Erro de segurança. Por favor, recarregue a página e tente novamente.")
+          // Tenta recarregar o token CSRF
+          const newToken = await getCsrfToken()
+          if (newToken) {
+            setCsrfToken(newToken)
+            setError("Erro de segurança. Por favor, tente novamente.")
+          } else {
+            setError("Erro de segurança. Por favor, recarregue a página e tente novamente.")
+          }
         } else {
           setError(result.error)
         }
@@ -135,9 +144,6 @@ export function LoginForm({
 
     try {
       setIsLoading(true)
-      console.log("Token reCAPTCHA para Google:", 
-        isDevelopment ? 'DESENVOLVIMENTO - reCAPTCHA ignorado' : recaptchaToken?.substring(0, 10) + "..."
-      )
       
       const redirectUrlObj = new URL("/organizations", window.location.origin)
       
@@ -149,9 +155,7 @@ export function LoginForm({
       
       const redirectTo = redirectUrlObj.toString()
       
-      console.log("URL de redirecionamento para Google:", redirectTo.substring(0, 50) + "...")
-      
-    await signIn("google", { 
+      await signIn("google", { 
         redirectTo,
         csrfToken,
       })

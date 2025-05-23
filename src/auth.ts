@@ -37,10 +37,24 @@ export const {
 	
 				const membership = await prisma.user_Organization.findFirst({
 					where: { user_id: user.id },
-					include: { organization: true },
+					include: { 
+						organization: {
+							select: {
+								id: true,
+								name: true,
+								uniqueId: true,
+								plan: true,
+							}
+						} 
+					},
 				})
 
-				token.orgId = membership?.organization?.uniqueId ?? null
+				if (membership?.organization) {
+					token.orgId = membership.organization.uniqueId
+					token.orgName = membership.organization.name
+					token.orgPlan = membership.organization.plan
+					token.orgRole = membership.role
+				}
 			} 
 			else if (trigger === "update" && session) {
 				if (session.name) token.name = session.name;
@@ -130,6 +144,15 @@ export const {
 				data: { sessionVersion: { increment: 1 } }
 			});
 		},
+		async signOut(message) {
+			if ('token' in message && message.token?.id) {
+				// Limpa os dados da organização do token
+				delete message.token.orgId;
+				delete message.token.orgName;
+				delete message.token.orgPlan;
+				delete message.token.orgRole;
+			}
+		}
 	},
 	secret: process.env.AUTH_SECRET,
 })

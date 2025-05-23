@@ -4,8 +4,11 @@ import { DefaultSession } from 'next-auth'
 export type ExtendedUser = DefaultSession['user'] & {
   id: string
   role: UserRole
-  orgId?: string;
-  sessionVersion: number;
+  orgId?: string
+  orgName?: string
+  orgPlan?: string
+  orgRole?: UserRole
+  sessionVersion: number
 }
 
 declare module 'next-auth' {

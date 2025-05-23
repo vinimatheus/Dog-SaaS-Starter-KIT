@@ -191,6 +191,11 @@ export async function removeMemberAction(
         },
       })
 
+      await tx.user.update({
+        where: { id: targetUserId },
+        data: { sessionVersion: { increment: 1 } }
+      });
+
       await revalidateOrganizationPath(organizationId)
       return { success: true }
     })

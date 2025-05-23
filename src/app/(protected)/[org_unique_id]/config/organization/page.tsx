@@ -3,8 +3,6 @@ import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { OrganizationForm } from "./organization-form"
 import { Metadata } from "next"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Building2 } from "lucide-react"
 import { PageLayout } from "@/components/page-layout"
 
 interface MetadataProps {
@@ -13,16 +11,12 @@ interface MetadataProps {
   }>
 }
 
-export async function generateMetadata({
-  params,
-}: MetadataProps): Promise<Metadata> {
+export async function generateMetadata({ params }: MetadataProps): Promise<Metadata> {
   const { org_unique_id } = await params
-  const organization = await prisma.organization.findUnique({
-    where: { uniqueId: org_unique_id },
-  })
 
   return {
-    title: `Configurações - ${organization?.name || org_unique_id}`,
+    title: `Configurações da Organização | ${org_unique_id}`,
+    description: "Gerencie as configurações da sua organização",
   }
 }
 
@@ -33,7 +27,7 @@ interface OrganizationPageProps {
 }
 
 export default async function OrganizationPage({ 
-  params,
+  params 
 }: OrganizationPageProps) {
   const [session, { org_unique_id }] = await Promise.all([
     auth(),
@@ -41,30 +35,26 @@ export default async function OrganizationPage({
   ])
   
   if (!session?.user?.id) {
-    redirect("/login")
+    redirect("/")
   }
 
-  const organization = await prisma.organization.findFirst({
-    where: {
-      uniqueId: org_unique_id,
+  const organization = await prisma.organization.findUnique({
+    where: { uniqueId: org_unique_id },
+    include: {
       User_Organization: {
-        some: {
-          user_id: session.user.id,
-          role: {
-            in: ["OWNER", "ADMIN"]
-          }
-        }
-      }
+        where: { user_id: session.user.id },
+        select: {
+          role: true,
+        },
+      },
     },
-    select: {
-      name: true,
-      uniqueId: true
-    }
   })
 
   if (!organization) {
     redirect("/organizations")
   }
+
+  const isOwner = organization.User_Organization[0]?.role === "OWNER"
 
   return (
     <PageLayout
@@ -72,25 +62,18 @@ export default async function OrganizationPage({
       description="Gerencie as configurações da sua organização"
     >
       <div className="grid gap-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                <Building2 className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <div>
-                <CardTitle>{organization.name}</CardTitle>
-                <CardDescription>Configurações gerais da organização</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <OrganizationForm 
-              initialName={organization.name} 
-              uniqueOrgId={organization.uniqueId} 
-            />
-          </CardContent>
-        </Card>
+        {isOwner ? (
+          <OrganizationForm 
+            initialName={organization.name} 
+            uniqueOrgId={organization.uniqueId} 
+          />
+        ) : (
+          <div className="bg-card rounded-md border border-muted p-4">
+            <p className="text-sm text-muted-foreground">
+              Apenas o dono da organização pode gerenciar as configurações da organização.
+            </p>
+          </div>
+        )}
       </div>
     </PageLayout>
   )

@@ -22,7 +22,7 @@ export async function updateProfile(data: { name: string }) {
   }
 
   // Rate limit: 10 tentativas por hora
-  await rateLimit(session.user.id, "profile_update", 10, 3600)
+  await rateLimit(session.user.id, "profile_update", 3600)
 
   await prisma.user.update({
     where: { id: session.user.id },
@@ -48,7 +48,7 @@ export async function createOrganization(data: { name: string, plan: PlanType })
   }
 
   // Rate limit: 5 tentativas por hora
-  await rateLimit(session.user.id, "organization_creation", 5, 3600)
+  await rateLimit(session.user.id, "organization_creation", 3600)
 
   // Validação adicional do plano
   if (data.plan === PlanType.PRO) {
@@ -109,7 +109,7 @@ export async function redirectToCheckout(organizationId: string) {
   }
 
   // Rate limit: 5 tentativas por hora
-  await rateLimit(session.user.id, "checkout_redirect", 5, 3600)
+  await rateLimit(session.user.id, "checkout_redirect", 3600)
 
   // Verificar se a organização pertence ao usuário
   const organization = await prisma.organization.findFirst({

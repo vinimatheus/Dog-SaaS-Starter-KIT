@@ -46,10 +46,44 @@ function matchOrganizationRoute(pathname: string): RouteMatch {
 	};
 }
 
-export function middleware(request: NextRequest) {
-	const url = request.nextUrl.clone();
-	const { pathname } = url;
+export async function middleware(request: NextRequest) {
+	const { pathname } = request.nextUrl;
+	
+	// Adiciona headers de segurança
+	const response = NextResponse.next()
+	
+	// Headers de segurança
+	response.headers.set('X-Frame-Options', 'DENY')
+	response.headers.set('X-Content-Type-Options', 'nosniff')
+	response.headers.set('X-XSS-Protection', '1; mode=block')
+	response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+	
+	// HSTS apenas em produção
+	if (process.env.NODE_ENV === 'production') {
+		response.headers.set(
+			'Strict-Transport-Security',
+			'max-age=31536000; includeSubDomains'
+		)
+	}
 
+	// Permite requisições OPTIONS para CORS
+	if (request.method === 'OPTIONS') {
+		return new NextResponse(null, {
+			status: 204,
+			headers: {
+				'Access-Control-Allow-Origin': '*',
+				'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+				'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-csrf-token',
+			},
+		})
+	}
+	
+	// Tratamento especial para rotas de autenticação
+	if (pathname.startsWith('/api/auth')) {
+		// Permite requisições de autenticação sem verificações adicionais
+		return response
+	}
+	
 	if (pathname.startsWith('/api/organizations')) {
 		const referer = request.headers.get('referer') || '';
 		const apiKey = request.headers.get('x-api-key') || '';
@@ -73,15 +107,15 @@ export function middleware(request: NextRequest) {
 	const routeMatch = matchOrganizationRoute(pathname);
 
 	if (routeMatch.isOrgRoute && routeMatch.uniqueOrganizationId) {
-	const requestHeaders = new Headers(request.headers);
+		const requestHeaders = new Headers(request.headers);
 		requestHeaders.set("x-unique-org-id", routeMatch.uniqueOrganizationId);
 
-	return NextResponse.next({
-		request: {
-			headers: requestHeaders,
-		},
-	});
+		return NextResponse.next({
+			request: {
+				headers: requestHeaders,
+			},
+		});
 	}
 	
-	return NextResponse.next();
+	return response
 }
