@@ -16,8 +16,9 @@ export async function POST(req: Request) {
       )
     }
 
-    // Lê o corpo da requisição como texto bruto
-    const rawBody = await req.text()
+    // Lê o corpo da requisição como ArrayBuffer para preservar exatamente como recebido
+    const rawBody = await req.arrayBuffer()
+    const payload = Buffer.from(rawBody)
     
     // Verifica se o STRIPE_WEBHOOK_SECRET está definido
     if (!process.env.STRIPE_WEBHOOK_SECRET) {
@@ -28,10 +29,22 @@ export async function POST(req: Request) {
       )
     }
 
-    // Remove espaços em branco extras do secret
+    // Remove espaços em branco extras do secret e verifica se está vazio
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET.trim()
+    if (!webhookSecret) {
+      console.error("STRIPE_WEBHOOK_SECRET está vazio após remoção de espaços")
+      return NextResponse.json(
+        { error: "Configuração do webhook inválida" },
+        { status: 500 }
+      )
+    }
 
-    const result = await handleStripeWebhookAction(signature, Buffer.from(rawBody), webhookSecret)
+    // Log para debug (remover em produção)
+    console.log("Webhook Secret:", webhookSecret)
+    console.log("Signature:", signature)
+    console.log("Payload (primeiros 100 bytes):", payload.toString('utf8').substring(0, 100))
+
+    const result = await handleStripeWebhookAction(signature, payload, webhookSecret)
     
     return NextResponse.json(result)
   } catch (error) {

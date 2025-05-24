@@ -1,373 +1,205 @@
-# Starter Org Dog 🐕
+# 🐕 Dog SaaS - Starter Kit
 
-Um projeto moderno e robusto construído com Next.js 15, React 19, Prisma e TypeScript, oferecendo uma base sólida para aplicações web organizacionais.
+Um kit inicial moderno e robusto para construir seu SaaS, construído com as melhores tecnologias do mercado.
 
-## 📋 Pré-requisitos
+## ✨ Características Principais
 
-- Node.js (versão LTS recomendada)
+- 🚀 **Next.js 15** com App Router
+- 🔒 **Autenticação** completa (Google OAuth + Magic Link)
+- 💳 **Integração Stripe** para assinaturas
+- 🎨 **UI Moderna** com shadcn/ui
+- 📱 **Responsivo** e acessível
+- 🔐 **Segurança** reforçada
+- 📧 **Sistema de Email** com Resend
+- 🤖 **Proteção** contra bots com reCAPTCHA
+
+## 🚀 Começando
+
+### Pré-requisitos
+
+- Node.js (LTS)
 - npm ou yarn
-- Docker e Docker Compose (para banco de dados)
+- Docker (para banco de dados)
+- Conta no [Stripe](https://stripe.com)
+- Conta no [Resend](https://resend.com)
+- Conta no [Google Cloud](https://cloud.google.com)
 
-## 🛠️ Instalação e Configuração
+### Instalação Rápida
 
-### 1. Banco de Dados com Docker
-
-O projeto utiliza PostgreSQL rodando em um container Docker. Para iniciar:
-
-```bash
-# Inicia o container do PostgreSQL
-docker-compose up -d
-
-# Verifica se o container está rodando
-docker ps
-```
-
-O banco de dados estará disponível em:
-- Host: localhost
-- Porta: 5432
-- Usuário: dogsaas
-- Senha: dogsaas
-- Banco: dogsaas
-
-### 2. Configuração do Projeto
-
-1. Clone o repositório:
+1. **Clone o repositório**
 ```bash
 git clone https://github.com/vinimatheus/starter-org-dog.git
 cd starter-org-dog
 ```
 
-2. Instale as dependências:
+2. **Instale as dependências**
 ```bash
 npm install
-# ou
-yarn install
 ```
 
-3. Configure as variáveis de ambiente:
+3. **Configure o banco de dados**
+```bash
+# Inicie o PostgreSQL com Docker
+docker-compose up -d
+```
+
+4. **Configure as variáveis de ambiente**
 ```env
-# Banco de Dados (Docker)
-DATABASE_URL="postgresql://dogsaas:dogsaas@localhost:5432/dogsaas?schema=public"
+# Crie um arquivo .env na raiz do projeto
+cp .env.example .env
 
-# NextAuth
-AUTH_SECRET="sua-chave-secreta-aqui"
-
-# Email (Resend)
-RESEND_API_KEY="sua-api-key-do-resend"
-EMAIL_FROM="seu-email@seudominio.com"
-
-# Google OAuth
-GOOGLE_CLIENT_ID="seu-client-id-do-google"
-GOOGLE_CLIENT_SECRET="seu-client-secret-do-google"
-
-# reCAPTCHA
-RECAPTCHA_SECRET_KEY="sua-chave-secreta-do-recaptcha"
-NEXT_PUBLIC_RECAPTCHA_SITE_KEY="sua-chave-de-site-do-recaptcha"
-
-# URL da Aplicação
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
+# Preencha as variáveis necessárias:
+# - DATABASE_URL
+# - AUTH_SECRET
+# - RESEND_API_KEY
+# - GOOGLE_CLIENT_ID
+# - GOOGLE_CLIENT_SECRET
+# - STRIPE_SECRET_KEY
+# - STRIPE_WEBHOOK_SECRET
+# - STRIPE_PRO_PLAN_PRICE_ID
+# - RECAPTCHA_SECRET_KEY
+# - NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+# - NEXT_PUBLIC_APP_URL
 ```
 
-4. Execute as migrações do banco de dados:
+5. **Inicialize o banco de dados**
 ```bash
 npx prisma generate
 npx prisma db push
 ```
 
-5. Inicie o servidor de desenvolvimento:
+6. **Inicie o servidor de desenvolvimento**
 ```bash
 npm run dev
-# ou
-yarn dev
 ```
 
-## 🚀 Tecnologias Principais
+## 💳 Configuração do Stripe
 
-- **Next.js 15.3.2** - Framework React com recursos avançados
-- **React 19** - Biblioteca JavaScript para construção de interfaces
-- **TypeScript** - Superset JavaScript com tipagem estática
-- **Prisma** - ORM moderno para banco de dados
-- **NextAuth.js** - Autenticação completa e segura
-- **TailwindCSS** - Framework CSS utilitário
-- **Radix UI** - Componentes acessíveis e personalizáveis
-- **Zod** - Validação de esquemas TypeScript
-- **React Hook Form** - Gerenciamento de formulários
-- **reCAPTCHA** - Proteção contra bots e spam
+1. **Crie uma conta no Stripe**
+   - Acesse [dashboard.stripe.com](https://dashboard.stripe.com)
+   - Obtenha suas chaves de API
 
-## 🏗️ Estrutura do Projeto
-
-```
-starter-org-dog/
-├── src/                    # Código fonte principal
-│   ├── app/               # Rotas e páginas (App Router)
-│   ├── components/        # Componentes React reutilizáveis
-│   └── lib/           # Estilos globais
-├── prisma/                # Schema e migrações do banco de dados
-├── public/               # Arquivos estáticos
-└── ...
-```
-
-## 🐳 Docker
-
-### Estrutura do Docker Compose
-
-```yaml
-version: '3.8'
-
-services:
-  postgresql:
-    image: bitnami/postgresql:latest
-    container_name: postgresql_container
-    environment:
-      - POSTGRESQL_USERNAME=dogsaas
-      - POSTGRESQL_PASSWORD=dogsaas
-      - POSTGRESQL_DATABASE=dogsaas
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgresql_data:/bitnami/postgresql
-
-volumes:
-  postgresql_data:
-    driver: local
-```
-
-### Comandos Docker Úteis
-
+2. **Configure o webhook**
 ```bash
-# Iniciar containers
-docker-compose up -d
+# Instale o Stripe CLI
+brew install stripe/stripe-cli/stripe
 
-# Parar containers
-docker-compose down
-
-# Ver logs
-docker-compose logs -f
-
-# Reiniciar containers
-docker-compose restart
-
-# Remover volumes (cuidado: isso apaga os dados)
-docker-compose down -v
-```
-
-### Volumes e Persistência
-
-- Os dados do PostgreSQL são persistidos em um volume Docker
-- O volume é nomeado `postgresql_data`
-- Os dados permanecem mesmo após parar/remover os containers
-- Para limpar completamente os dados, use `docker-compose down -v`
-
-## 🔒 Autenticação
-
-O projeto utiliza NextAuth.js v5 para autenticação, oferecendo múltiplos métodos de login:
-
-### Métodos de Autenticação
-
-#### 1. Google OAuth
-- Login social com conta Google
-- Integração com Google Cloud Console
-- Escopo de acesso configurável
-- Perfil do usuário sincronizado automaticamente
-
-#### 2. Magic Link (Email)
-- Login sem senha via email
-- Links de acesso únicos e seguros
-- Expiração automática dos links
-- Envio de emails via Resend
-
-### Configuração de Autenticação
-
-1. Para Google OAuth:
-   - Acesse [Google Cloud Console](https://console.cloud.google.com)
-   - Crie um novo projeto
-   - Configure as credenciais OAuth 2.0
-   - Adicione `http://localhost:3000/api/auth/callback/google` como URI de redirecionamento
-   - Copie o Client ID e Client Secret para as variáveis de ambiente
-
-2. Para Magic Link:
-   - Crie uma conta no [Resend](https://resend.com)
-   - Configure seu domínio de email
-   - Obtenha sua API key
-   - Configure o `EMAIL_FROM` com um email verificado
-
-3. Para reCAPTCHA:
-   - Acesse [Google reCAPTCHA Admin](https://www.google.com/recaptcha/admin)
-   - Registre um novo site
-   - Selecione reCAPTCHA v2 (Checkbox)
-   - Adicione seu domínio à lista de domínios permitidos
-   - Copie a Site Key e Secret Key para as variáveis de ambiente
-
-### Segurança
-
-- Tokens JWT seguros
-- CSRF Protection
-- Rate limiting
-- reCAPTCHA para proteção contra bots
-- Sessões com expiração
-- Proteção de rotas
-- Validação de email
-
-## 💳 Integração com Stripe
-
-O projeto inclui integração completa com Stripe para gerenciamento de assinaturas e pagamentos.
-
-### Configuração do Stripe
-
-1. Crie uma conta no [Stripe](https://stripe.com)
-2. Obtenha suas chaves de API no [Dashboard do Stripe](https://dashboard.stripe.com/apikeys)
-3. Adicione as seguintes variáveis de ambiente:
-
-```env
-# Stripe
-STRIPE_SECRET_KEY="sk_test_..."
-STRIPE_WEBHOOK_SECRET="whsec_..."
-STRIPE_PRO_PLAN_PRICE_ID="price_..."
-```
-
-### Testes com Cartões
-
-Para testar pagamentos, use os seguintes cartões de teste:
-
-- **Sucesso**: `4242 4242 4242 4242`
-- **Falha**: `4000 0000 0000 0002`
-- **Requer Autenticação**: `4000 0025 0000 3155`
-
-Outros dados de teste:
-- Data de validade: Qualquer data futura
-- CVC: Qualquer número de 3 dígitos
-- CEP: Qualquer CEP válido
-
-### Webhook do Stripe
-
-Para desenvolvimento local, use o Stripe CLI para receber eventos do webhook:
-
-1. Instale o [Stripe CLI](https://stripe.com/docs/stripe-cli)
-2. Faça login:
-```bash
+# Faça login
 stripe login
-```
 
-3. Inicie o webhook listener:
-```bash
+# Inicie o webhook listener
 stripe listen --forward-to localhost:3000/api/webhooks/stripe
+
+# Copie o webhook signing secret para seu .env
 ```
 
-4. Copie o webhook signing secret fornecido e adicione ao seu `.env`:
-```env
-STRIPE_WEBHOOK_SECRET="whsec_..."
-```
+3. **Teste os pagamentos**
+   - Cartão de teste: `4242 4242 4242 4242`
+   - Data: Qualquer data futura
+   - CVC: Qualquer número de 3 dígitos
+   - CEP: Qualquer CEP válido
 
-### Funcionalidades Implementadas
+## 🔐 Autenticação
 
-- **Checkout de Assinatura**
-  - Criação de sessão de checkout
-  - Redirecionamento para página de pagamento
-  - Processamento de pagamento
-  - Atualização automática do plano
+### Google OAuth
 
-- **Portal do Cliente**
-  - Gerenciamento de assinatura
-  - Atualização de método de pagamento
-  - Visualização de faturas
-  - Cancelamento de assinatura
+1. Acesse [Google Cloud Console](https://console.cloud.google.com)
+2. Crie um novo projeto
+3. Configure as credenciais OAuth 2.0
+4. Adicione a URL de redirecionamento:
+   ```
+   http://localhost:3000/api/auth/callback/google
+   ```
+5. Copie o Client ID e Client Secret para o `.env`
 
-- **Webhooks**
-  - Processamento de eventos de pagamento
-  - Atualização de status de assinatura
-  - Cancelamento automático
-  - Confirmação de pagamento
+### Magic Link (Email)
 
-### Fluxo de Assinatura
+1. Crie uma conta no [Resend](https://resend.com)
+2. Configure seu domínio de email
+3. Obtenha sua API key
+4. Configure o `EMAIL_FROM` no `.env`
 
-1. Usuário clica em "Fazer Upgrade"
-2. É redirecionado para página de checkout do Stripe
-3. Após pagamento bem-sucedido:
-   - Webhook recebe evento `checkout.session.completed`
-   - Plano é atualizado para PRO
-   - Usuário é redirecionado para dashboard
+## 🎨 Personalização
 
-### Cancelamento
+### UI Components
 
-1. Usuário acessa portal do cliente
-2. Seleciona "Cancelar Assinatura"
-3. Assinatura é cancelada ao final do período
-4. Webhook recebe evento `customer.subscription.deleted`
-5. Plano é atualizado para FREE
-
-### Segurança
-
-- Verificação de assinatura de webhook
-- Validação de permissões de usuário
-- Proteção contra duplicação de assinaturas
-- Verificação de status de pagamento
-
-## 🎨 UI/UX
-
-O projeto utiliza o [shadcn/ui](https://ui.shadcn.com), uma coleção de componentes reutilizáveis construídos com Radix UI e Tailwind CSS:
-
-- **Componentes Acessíveis**: Todos os componentes seguem as melhores práticas de acessibilidade (WAI-ARIA)
-- **Customização**: Componentes altamente customizáveis através do Tailwind CSS
-- **Tipografia**: Sistema de tipografia consistente
-- **Animações**: Animações suaves e interativas
-- **Feedback**: Sistema de notificações com Sonner (toasts)
-
-### Componentes Disponíveis
-
-- **Layout**: Card, Sheet, Dialog, Drawer
-- **Formulários**: Input, Select, Checkbox, Radio, Switch
-- **Navegação**: Tabs, Breadcrumb, Pagination
-- **Feedback**: Toast, Alert, Progress
-- **Data Display**: Table, Avatar, Badge
-- **Overlay**: Modal, Popover, Tooltip
-- **E mais...**
-
-Para adicionar novos componentes do shadcn/ui, use o CLI:
+O projeto usa [shadcn/ui](https://ui.shadcn.com). Para adicionar novos componentes:
 
 ```bash
 npx shadcn-ui@latest add [nome-do-componente]
 ```
 
-## 📦 Dependências Principais
+### Estilos
 
-### Produção
-- `@prisma/client` - Cliente Prisma para banco de dados
-- `next-auth` - Autenticação
-- `@radix-ui/*` - Componentes UI base para shadcn/ui
-- `class-variance-authority` - Utilitário para variantes de componentes
-- `tailwind-merge` - Merge inteligente de classes Tailwind
-- `clsx` - Utilitário para composição de classes
-- `react-hook-form` - Gerenciamento de formulários
-- `zod` - Validação
-- `date-fns` - Manipulação de datas
-- `resend` - Serviço de email
-- `react-google-recaptcha` - Integração com Google reCAPTCHA
+- Tailwind CSS para estilização
+- Sistema de cores personalizável
+- Componentes acessíveis
+- Animações suaves
 
-### Desenvolvimento
-- `typescript` - Tipagem estática
-- `prisma` - ORM e migrações
-- `tailwindcss` - Estilização
-- `eslint` - Linting
-- `@types/*` - Tipos TypeScript
+## 📦 Scripts Disponíveis
 
-## 🚀 Scripts Disponíveis
+```bash
+npm run dev          # Inicia o servidor de desenvolvimento
+npm run build        # Cria a versão de produção
+npm run start        # Inicia o servidor de produção
+npm run lint         # Executa a verificação de linting
+```
 
-- `npm run dev` - Inicia o servidor de desenvolvimento com Turbopack
-- `npm run build` - Cria a versão de produção
-- `npm run start` - Inicia o servidor de produção
-- `npm run lint` - Executa a verificação de linting
-- `npm run postinstall` - Gera o cliente Prisma após instalação
-- `npm run vercel-build` - Script específico para deploy na Vercel
+## 🔄 Fluxo de Assinatura
+
+1. **Upgrade para Pro**
+   - Usuário clica em "Fazer Upgrade"
+   - É redirecionado para checkout do Stripe
+   - Realiza o pagamento
+
+2. **Processamento**
+   - Webhook recebe confirmação
+   - Plano é atualizado para PRO
+   - Usuário é redirecionado
+
+3. **Gerenciamento**
+   - Portal do cliente para gestão
+   - Atualização de pagamento
+   - Cancelamento de assinatura
+
+## 🛡️ Segurança
+
+- Verificação de assinatura de webhook
+- Proteção CSRF
+- Rate limiting
+- Validação de email
+- Tokens JWT seguros
+- Proteção contra bots
+- Sessões com expiração
+
+## 📚 Estrutura do Projeto
+
+```
+starter-org-dog/
+├── src/
+│   ├── app/              # Rotas e páginas
+│   ├── components/       # Componentes React
+│   ├── lib/             # Utilitários e configurações
+│   └── actions/         # Server Actions
+├── prisma/              # Schema do banco de dados
+├── public/             # Arquivos estáticos
+└── scripts/            # Scripts utilitários
+```
 
 ## 🤝 Contribuindo
 
-1. Faça um Fork do projeto
-2. Crie uma Branch para sua Feature (`git checkout -b feature/AmazingFeature`)
-3. Faça o Commit das suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Faça o Push para a Branch (`git push origin feature/AmazingFeature`)
+1. Faça um Fork
+2. Crie sua Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add AmazingFeature'`)
+4. Push para a Branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
 
 ## 📝 Licença
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para detalhes.
+
+---
+
 Desenvolvido com ❤️ por [Vinicius Matheus](https://github.com/vinimatheus)
+
+Se você gostou do projeto, considere dar uma ⭐️ no GitHub!
