@@ -130,7 +130,8 @@ export async function createCustomerPortalSession(organizationId: string) {
 
 export async function handleStripeWebhookAction(
   signature: string,
-  payload: Buffer
+  payload: Buffer,
+  webhookSecret: string
 ) {
   try {
     console.log("Processando webhook com signature:", signature)
@@ -138,7 +139,7 @@ export async function handleStripeWebhookAction(
     const event = stripeInstance.webhooks.constructEvent(
       payload,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      webhookSecret
     )
 
     console.log("Evento recebido:", event.type)
