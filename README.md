@@ -12,6 +12,7 @@ Um kit inicial moderno e robusto para construir seu SaaS, construído com as mel
 - 🔐 **Segurança** reforçada
 - 📧 **Sistema de Email** com Resend
 - 🤖 **Proteção** contra bots com reCAPTCHA
+- 🐳 **Docker** para desenvolvimento e produção
 
 ## 🚀 Começando
 
@@ -19,7 +20,9 @@ Um kit inicial moderno e robusto para construir seu SaaS, construído com as mel
 
 - Node.js (LTS)
 - npm ou yarn
-- Docker (para banco de dados)
+- Docker e Docker Compose
+  - [Docker Desktop](https://www.docker.com/products/docker-desktop) para Mac/Windows
+  - [Docker Engine](https://docs.docker.com/engine/install/) para Linux
 - Conta no [Stripe](https://stripe.com)
 - Conta no [Resend](https://resend.com)
 - Conta no [Google Cloud](https://cloud.google.com)
@@ -183,7 +186,11 @@ starter-org-dog/
 │   └── actions/         # Server Actions
 ├── prisma/              # Schema do banco de dados
 ├── public/             # Arquivos estáticos
-└── scripts/            # Scripts utilitários
+├── scripts/            # Scripts utilitários
+├── Dockerfile          # Configuração Docker produção
+├── Dockerfile.dev      # Configuração Docker desenvolvimento
+├── docker-compose.yml  # Serviços básicos
+└── docker-compose.dev.yml # Ambiente completo
 ```
 
 ## 🤝 Contribuindo
@@ -203,3 +210,103 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para de
 Desenvolvido com ❤️ por [Vinicius Matheus](https://github.com/vinimatheus)
 
 Se você gostou do projeto, considere dar uma ⭐️ no GitHub!
+
+## 🐳 Docker
+
+### Ambiente de Desenvolvimento
+
+O projeto utiliza Docker para garantir consistência entre ambientes de desenvolvimento. Temos dois modos de execução:
+
+#### 1. Apenas Banco de Dados (Recomendado para Desenvolvimento)
+
+```bash
+# Inicia apenas o PostgreSQL
+docker-compose up -d
+
+# Para parar
+docker-compose down
+```
+
+#### 2. Ambiente Completo
+
+```bash
+# Inicia todos os serviços (Next.js + PostgreSQL)
+docker-compose -f docker-compose.dev.yml up
+
+# Para parar
+docker-compose -f docker-compose.dev.yml down
+```
+
+### Ambiente de Produção
+
+Para produção, utilizamos uma configuração otimizada:
+
+```bash
+# Build da imagem de produção
+docker build -t dog-saas:prod .
+
+# Executa o container
+docker run -p 3000:3000 \
+  --env-file .env.production \
+  dog-saas:prod
+```
+
+### Arquivos Docker
+
+- `Dockerfile`: Configuração para ambiente de produção
+- `Dockerfile.dev`: Configuração para desenvolvimento
+- `docker-compose.yml`: Serviços básicos (PostgreSQL)
+- `docker-compose.dev.yml`: Ambiente completo de desenvolvimento
+
+### Volumes e Persistência
+
+```yaml
+volumes:
+  postgres_data:    # Dados do PostgreSQL
+  node_modules:     # Dependências do Node.js
+```
+
+### Comandos Docker Úteis
+
+```bash
+# Ver logs dos containers
+docker-compose logs -f
+
+# Reconstruir containers
+docker-compose build --no-cache
+
+# Limpar recursos não utilizados
+docker system prune
+
+# Ver status dos containers
+docker-compose ps
+```
+
+### Troubleshooting Docker
+
+1. **Problemas de Permissão**
+```bash
+# Ajuste permissões do volume
+sudo chown -R $USER:$USER ./postgres-data
+```
+
+2. **Limpeza de Containers**
+```bash
+# Remove containers parados
+docker container prune
+
+# Remove volumes não utilizados
+docker volume prune
+```
+
+3. **Reset do Ambiente**
+```bash
+# Para todos os containers
+docker-compose down
+
+# Remove volumes
+docker-compose down -v
+
+# Reconstrói e inicia
+docker-compose up --build
+```
