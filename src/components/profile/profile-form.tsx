@@ -8,13 +8,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
+import { updateProfile } from "@/actions/profile.actions";
+import { useTransition } from "react";
 
 const formSchema = z.object({
 	name: z.string().min(2, {
 		message: "O nome deve ter pelo menos 2 caracteres.",
-	}),
-	email: z.string().email({
-		message: "Digite um e-mail válido.",
 	}),
 });
 
@@ -29,35 +28,31 @@ interface ProfileFormProps {
 
 export function ProfileForm({ user, orgUniqueId }: ProfileFormProps) {
 	const router = useRouter();
+	const [isPending, startTransition] = useTransition();
 
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			name: user.name || "",
-			email: user.email || "",
 		},
 	});
 
 	async function onSubmit(values: z.infer<typeof formSchema>) {
-		try {
-			const response = await fetch(`/api/organizations/${orgUniqueId}/profile`, {
-				method: "PATCH",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(values),
-			});
+		startTransition(async () => {
+			try {
+				const result = await updateProfile(orgUniqueId, values);
 
-			if (!response.ok) {
-				throw new Error("Erro ao atualizar perfil");
+				if (result.success) {
+					toast.success("Nome atualizado com sucesso!");
+					router.refresh();
+				} else {
+					toast.error(result.error || "Erro ao atualizar nome");
+				}
+			} catch (error) {
+				console.error("Erro ao atualizar nome:", error);
+				toast.error("Erro ao atualizar nome");
 			}
-
-			toast.success("Perfil atualizado com sucesso!");
-			router.refresh();
-		} catch (error) {
-      console.log(error)
-			toast.error("Erro ao atualizar perfil");
-		}
+		});
 	}
 
 	return (
@@ -70,7 +65,11 @@ export function ProfileForm({ user, orgUniqueId }: ProfileFormProps) {
 						<FormItem>
 							<FormLabel>Nome</FormLabel>
 							<FormControl>
-								<Input placeholder="Seu nome" {...field} />
+								<Input 
+									placeholder="Seu nome" 
+									{...field} 
+									disabled={isPending}
+								/>
 							</FormControl>
 							<FormDescription>
 								Este é o nome que será exibido para outros usuários.
@@ -80,24 +79,17 @@ export function ProfileForm({ user, orgUniqueId }: ProfileFormProps) {
 					)}
 				/>
 
-				<FormField
-					control={form.control}
-					name="email"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>E-mail</FormLabel>
-							<FormControl>
-								<Input placeholder="seu@email.com" {...field} />
-							</FormControl>
-							<FormDescription>
-								Este é o e-mail que você usa para fazer login.
-							</FormDescription>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+				<div className="text-sm text-muted-foreground">
+					<p>E-mail: {user.email}</p>
+					<p className="text-xs mt-1">Para alterar seu e-mail, entre em contato com o suporte.</p>
+				</div>
 
-				<Button type="submit">Salvar alterações</Button>
+				<Button 
+					type="submit" 
+					disabled={isPending}
+				>
+					{isPending ? "Salvando..." : "Salvar alterações"}
+				</Button>
 			</form>
 		</Form>
 	);

@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProviderIcons } from "@/components/profile/provider-icons";
@@ -16,11 +18,6 @@ export default function ClientAccountLinking({
 			name: "Google",
 			icon: "google",
 		},
-		{
-			id: "github",
-			name: "GitHub",
-			icon: "github",
-		},
 	];
 
 	const handleLinkAccount = async (provider: string) => {
@@ -34,7 +31,7 @@ export default function ClientAccountLinking({
 			<CardHeader>
 				<CardTitle>Contas Vinculadas</CardTitle>
 				<CardDescription>
-					Gerencie as contas vinculadas ao seu perfil
+					Vincule sua conta Google para facilitar o login
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
@@ -54,16 +51,18 @@ export default function ClientAccountLinking({
 										<p className="text-sm text-muted-foreground">
 											{isLinked
 												? "Conta vinculada"
-												: "Conta não vinculada"}
+												: "Clique para vincular sua conta"}
 										</p>
 									</div>
 								</div>
-								<Button
-									variant={isLinked ? "outline" : "default"}
-									onClick={() => handleLinkAccount(provider.id)}
-								>
-									{isLinked ? "Desvincular" : "Vincular"}
-								</Button>
+								{!isLinked && (
+									<Button
+										variant="default"
+										onClick={() => handleLinkAccount(provider.id)}
+									>
+										Vincular
+									</Button>
+								)}
 							</div>
 						);
 					})}
