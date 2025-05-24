@@ -3,16 +3,16 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { OrganizationProvider } from "@/contexts/organization-context";
-import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { cookies } from "next/headers";
 import { Separator } from "@/components/ui/separator";
-import { DynamicBreadcrumb } from "@/components/dynamic-breadcrumb";
 import { unstable_cache } from "next/cache";
 import { NotificationMenu } from "@/components/notification/notification-menu";
-import { PendingInvitesMenu } from "@/components/pending-invites-menu";
 import { Toaster } from "sonner";
 import { PlanType } from "@prisma/client";
+import { AppSidebar } from "@/components/layout/app-sidebar";
+import { DynamicBreadcrumb } from "@/components/navigation/dynamic-breadcrumb";
+import { PendingInvitesMenu } from "@/components/invite/pending-invites-menu";
  
 export type AuthenticatedTeamsLayoutProps = {
 	children: React.ReactNode;
@@ -107,7 +107,7 @@ export default async function AuthenticatedOrganizationLayout({
 									orientation="vertical"
 									className="mr-2 data-[orientation=vertical]:h-4"
 								/>
-								<DynamicBreadcrumb 
+								<DynamicBreadcrumb
 									organizationName={organization.name} 
 									organizationId={org_unique_id} 
 								/>

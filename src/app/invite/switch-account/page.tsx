@@ -1,7 +1,8 @@
 import { auth } from "@/auth";
+import { SignOutButton } from "@/components/auth/sign-out-button";
+import { BackButton } from "@/components/navigation/back-button";
 import { redirect } from "next/navigation";
-import { SignOutButton } from "@/components/sign-out-button";
-import { BackButton } from "@/components/back-button";
+
 
 interface SwitchAccountPageProps {
   searchParams: Promise<{

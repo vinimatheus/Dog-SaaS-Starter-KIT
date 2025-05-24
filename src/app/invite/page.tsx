@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
+import { AcceptInviteForm } from "@/components/invite/accept-invite-form";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { AcceptInviteForm } from "@/components/accept-invite-form";
 
 interface InvitePageProps {
   searchParams: Promise<{

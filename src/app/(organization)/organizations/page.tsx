@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Users, ArrowRight } from "lucide-react";
 import { Organization, User_Organization, User } from "@prisma/client";
-import { PendingInvites } from "@/components/pending-invites";
-import { Logo } from "@/components/logo";
+import { PendingInvites } from "@/components/invite/pending-invites";
+import { Logo } from "@/components/ui/logo";
 
 type OrganizationWithMembers = Pick<Organization, 'id' | 'name' | 'uniqueId' | 'plan'> & {
   User_Organization: (User_Organization & {

@@ -1,5 +1,5 @@
-import { Logo } from "@/components/logo"
-import { OnboardingForm } from "./onboarding-form"
+import { Logo } from "@/components/ui/logo"
+import { OnboardingForm } from "@/components/forms/onboarding-form"
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { Button } from "@/components/ui/button"

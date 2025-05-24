@@ -1,13 +1,13 @@
 import { auth } from "@/auth";
-import { ProfileForm } from "./profile-form";
+import { ProfileForm } from "@/components/profile/profile-form";
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserCircle } from "lucide-react";
 import Image from "next/image";
-import ClientAccountLinking from "./client-account-linking";
-import { PageLayout } from "@/components/page-layout";
+import ClientAccountLinking from "@/components/profile/client-account-linking";
+import { PageLayout } from "@/components/layout/page-layout";
 
 interface MetadataProps {
 	params: Promise<{
@@ -124,7 +124,6 @@ export default async function ProfilePage({
 
 				{/* Componente de vinculação de contas */}
 				<ClientAccountLinking 
-					userEmail={user.email || ''}
 					linkedProviders={linkedProviders}
 				/>
 			</div>

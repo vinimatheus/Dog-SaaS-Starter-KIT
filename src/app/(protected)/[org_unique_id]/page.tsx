@@ -8,8 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Users, Mail } from "lucide-react";
 import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
-import { PageLayout } from "@/components/page-layout";
-import { PendingInvites } from "@/components/pending-invites";
+import { PageLayout } from "@/components/layout/page-layout";
+import { PendingInvites } from "@/components/invite/pending-invites";
 
 const LoadingCard = () => (
 	<Card className="animate-pulse">

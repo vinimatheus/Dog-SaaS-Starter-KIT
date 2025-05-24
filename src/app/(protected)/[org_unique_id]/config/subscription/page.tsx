@@ -1,10 +1,11 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
-import { PageLayout } from "@/components/page-layout"
-import { SubscriptionManager } from "@/components/subscription-manager"
+
 import { Metadata } from "next"
 import { stripe } from "@/lib/stripe"
+import { PageLayout } from "@/components/layout/page-layout"
+import { SubscriptionManager } from "@/components/subscription/subscription-manager"
 
 interface MetadataProps {
   params: Promise<{

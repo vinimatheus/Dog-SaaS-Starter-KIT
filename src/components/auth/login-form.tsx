@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Logo } from "@/components/logo"
+import { Logo } from "../ui/logo"
 
 const loginSchema = z.object({
   email: z.string()

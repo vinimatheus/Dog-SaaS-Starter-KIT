@@ -1,9 +1,9 @@
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
-import { OrganizationForm } from "./organization-form"
+import { OrganizationForm } from "@/components/organization/organization-form"
 import { Metadata } from "next"
-import { PageLayout } from "@/components/page-layout"
+import { PageLayout } from "@/components/layout/page-layout"
 
 interface MetadataProps {
   params: Promise<{

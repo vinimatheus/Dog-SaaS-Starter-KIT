@@ -10,8 +10,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { profileSchema, organizationSchema } from "./schemas"
-import { updateProfile, createOrganization, completeOnboarding, redirectToCheckout } from "./actions"
+import { profileSchema, organizationSchema, planSchema } from "@/schemas/onboarding"
+import { updateProfile, createOrganization, completeOnboarding, redirectToCheckout } from "@/actions/onboarding.actions"
 import { toast } from "sonner"
 import { PlanType } from "@prisma/client"
 
@@ -54,6 +54,7 @@ export function OnboardingForm({ initialName }: OnboardingFormProps) {
   })
 
   const planForm = useForm<PlanFormData>({
+    resolver: zodResolver(planSchema),
     defaultValues: {
       plan: PlanType.FREE
     }

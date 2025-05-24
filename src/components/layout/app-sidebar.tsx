@@ -11,9 +11,9 @@ import {
   SidebarFooter,
   SidebarContent
 } from "@/components/ui/sidebar"
-import { TeamSwitcher } from "@/components/team-switcher"
-import { NavUser } from "@/components/nav-user"
-import { NavMain } from "@/components/nav-main"
+import { TeamSwitcher } from "@/components/navigation/team-switcher"
+import { NavUser } from "@/components/navigation/nav-user"
+import { NavMain } from "@/components/navigation/nav-main"
 import { useOrganization } from "@/contexts/organization-context"
 import { getOrganizationRoutes } from "@/config/routes"
 import { useMemo, memo } from "react"

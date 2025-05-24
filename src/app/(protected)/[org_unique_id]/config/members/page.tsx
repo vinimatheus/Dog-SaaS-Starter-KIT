@@ -1,12 +1,12 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { InviteMemberForm } from "@/components/invite-member-form";
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
-import { InviteActions } from "@/components/invite-actions";
 import { MembersList } from "@/components/organization/members-list";
 import { cn } from "@/lib/utils";
-import { PageLayout } from "@/components/page-layout";
+import { PageLayout } from "@/components/layout/page-layout";
+import { InviteMemberForm } from "@/components/invite/invite-member-form";
+import { InviteActions } from "@/components/invite/invite-actions";
 
 interface MetadataProps {
 	params: Promise<{
