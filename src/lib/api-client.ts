@@ -1,9 +1,3 @@
-/**
- * Cliente API para fazer requisições para as APIs internas
- * com autorização adequada
- */
-
-
 export interface Organization {
   id: string;
   name: string;
