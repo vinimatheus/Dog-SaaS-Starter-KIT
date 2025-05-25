@@ -1,0 +1,48 @@
+{
+  "name": "Dog SaaS Starter Kit",
+  "short_name": "Dog SaaS",
+  "description": "Um kit inicial moderno e robusto para construir seu SaaS com as melhores tecnologias do mercado",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "theme_color": "#000000",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["technology", "development", "saas"],
+  "screenshots": [
+    {
+      "src": "/screenshot-1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "Tela inicial do Dog SaaS Starter Kit"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Começar",
+      "short_name": "Começar",
+      "description": "Comece a usar o Dog SaaS Starter Kit",
+      "url": "/#comecar",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+} 
