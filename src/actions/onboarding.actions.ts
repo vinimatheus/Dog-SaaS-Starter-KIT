@@ -4,7 +4,6 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { PlanType } from "@prisma/client"
-import { rateLimit } from "@/lib/rate-limit"
 import { logSecurityEvent } from "@/lib/security-logger"
 import { headers } from "next/headers"
 import { createCheckoutSession } from "@/actions/stripe.actions"
@@ -20,9 +19,6 @@ export async function updateProfile(data: { name: string }) {
     })
     throw new Error("Não autorizado")
   }
-
-  // Rate limit: 10 tentativas por hora
-  await rateLimit(session.user.id, "profile_update", 3600)
 
   await prisma.user.update({
     where: { id: session.user.id },
@@ -46,9 +42,6 @@ export async function createOrganization(data: { name: string, plan: PlanType })
     })
     throw new Error("Não autorizado")
   }
-
-  // Rate limit: 5 tentativas por hora
-  await rateLimit(session.user.id, "organization_creation", 3600)
 
   // Validação adicional do plano
   if (data.plan === PlanType.PRO) {
@@ -107,9 +100,6 @@ export async function redirectToCheckout(organizationId: string) {
     })
     throw new Error("Não autorizado")
   }
-
-  // Rate limit: 5 tentativas por hora
-  await rateLimit(session.user.id, "checkout_redirect", 3600)
 
   // Verificar se a organização pertence ao usuário
   const organization = await prisma.organization.findFirst({
