@@ -48,7 +48,6 @@ export async function createCheckoutSession(organizationId: string) {
     throw new Error("Organização já possui plano Pro")
   }
 
-  // Verificar se já existe uma assinatura ativa para este preço
   if (organization.stripeCustomerId) {
     const subscriptions = await stripe.subscriptions.list({
       customer: organization.stripeCustomerId,
@@ -169,7 +168,6 @@ export async function handleStripeWebhookAction(
 
         console.log("Organização atualizada:", updatedOrg)
 
-        // Adiciona um script para disparar os confetes quando a página carregar
         const script = `
           <script>
             window.onload = function() {
@@ -184,7 +182,6 @@ export async function handleStripeWebhookAction(
           </script>
         `;
 
-        // Adiciona o script ao HTML da página
         const html = `
           <!DOCTYPE html>
           <html>

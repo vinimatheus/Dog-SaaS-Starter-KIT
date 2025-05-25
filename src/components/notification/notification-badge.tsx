@@ -18,7 +18,6 @@ export function NotificationBadge() {
 
     fetchCount();
     
-    // Atualiza a contagem a cada minuto
     const interval = setInterval(fetchCount, 60000);
     return () => clearInterval(interval);
   }, []);

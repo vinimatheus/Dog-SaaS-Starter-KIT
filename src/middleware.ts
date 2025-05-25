@@ -49,16 +49,13 @@ function matchOrganizationRoute(pathname: string): RouteMatch {
 export async function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl;
 	
-	// Adiciona headers de segurança
 	const response = NextResponse.next()
 	
-	// Headers de segurança
 	response.headers.set('X-Frame-Options', 'DENY')
 	response.headers.set('X-Content-Type-Options', 'nosniff')
 	response.headers.set('X-XSS-Protection', '1; mode=block')
 	response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
 	
-	// HSTS apenas em produção
 	if (process.env.NODE_ENV === 'production') {
 		response.headers.set(
 			'Strict-Transport-Security',
@@ -66,7 +63,6 @@ export async function middleware(request: NextRequest) {
 		)
 	}
 
-	// Permite requisições OPTIONS para CORS
 	if (request.method === 'OPTIONS') {
 		return new NextResponse(null, {
 			status: 204,
@@ -78,9 +74,7 @@ export async function middleware(request: NextRequest) {
 		})
 	}
 	
-	// Tratamento especial para rotas de autenticação
 	if (pathname.startsWith('/api/auth')) {
-		// Permite requisições de autenticação sem verificações adicionais
 		return response
 	}
 	

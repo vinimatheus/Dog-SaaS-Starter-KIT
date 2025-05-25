@@ -146,7 +146,6 @@ export const {
 		},
 		async signOut(message) {
 			if ('token' in message && message.token?.id) {
-				// Limpa os dados da organização do token
 				delete message.token.orgId;
 				delete message.token.orgName;
 				delete message.token.orgPlan;

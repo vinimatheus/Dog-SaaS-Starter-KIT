@@ -285,7 +285,7 @@ export async function inviteMemberAction(formData: FormData) {
     }
 
     const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 7) // Convite válido por 7 dias
+    expiresAt.setDate(expiresAt.getDate() + 7) 
 
     await prisma.invite.create({
       data: {

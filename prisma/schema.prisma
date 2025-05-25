@@ -168,8 +168,8 @@ model Notification {
   message       String
   type          NotificationType @default(SYSTEM)
   read          Boolean          @default(false)
-  linked_entity String? // ID da entidade relacionada (convite, organização, etc)
-  entity_type   String? // Tipo da entidade (ex: "invite", "organization")
+  linked_entity String?
+  entity_type   String?
   created_at    DateTime         @default(now())
   updated_at    DateTime         @updatedAt
 

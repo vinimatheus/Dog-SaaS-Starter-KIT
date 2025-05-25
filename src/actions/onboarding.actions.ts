@@ -31,7 +31,6 @@ export async function updateProfile(data: { name: string }) {
     metadata: { name: data.name }
   })
 
-  // Revalida o cache da página de onboarding
   revalidatePath("/onboarding")
 }
 
@@ -70,7 +69,6 @@ export async function createOrganization(data: { name: string }) {
     }
   })
 
-  // Revalida o cache da página de onboarding e da página da organização
   revalidatePath("/onboarding")
   revalidatePath(`/${organization.uniqueId}`)
 
@@ -89,7 +87,6 @@ export async function redirectToCheckout(organizationId: string) {
     throw new Error("Não autorizado")
   }
 
-  // Verificar se a organização pertence ao usuário
   const organization = await prisma.organization.findFirst({
     where: {
       id: organizationId,
@@ -130,7 +127,6 @@ export async function completeOnboarding(organizationId: string) {
     throw new Error("ID da organização é obrigatório")
   }
 
-  // Buscar a organização para obter o uniqueId
   const organization = await prisma.organization.findUnique({
     where: { id: organizationId },
     select: { uniqueId: true }
@@ -140,10 +136,8 @@ export async function completeOnboarding(organizationId: string) {
     throw new Error("Organização não encontrada")
   }
 
-  // Revalida o cache da página de onboarding e da página da organização
   revalidatePath("/onboarding")
   revalidatePath(`/${organization.uniqueId}`)
 
-  // O redirect do Next.js deve ser chamado diretamente, sem try/catch
   redirect(`/${organization.uniqueId}`)
 } 

@@ -42,7 +42,6 @@ export function NotificationMenu() {
   useEffect(() => {
     fetchNotifications();
     
-    // Atualiza as notificações a cada minuto
     const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
   }, []);

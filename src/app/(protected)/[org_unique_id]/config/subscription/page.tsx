@@ -63,7 +63,6 @@ export default async function SubscriptionPage({
 
   const isOwner = currentUserOrg.role === "OWNER"
 
-  // Buscar informações da assinatura no Stripe
   let subscription = undefined
   if (organization.stripeSubscriptionId) {
     try {

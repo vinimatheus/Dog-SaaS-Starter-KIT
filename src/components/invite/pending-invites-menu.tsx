@@ -32,7 +32,6 @@ export function PendingInvitesMenu() {
   useEffect(() => {
     checkPendingInvites();
     
-    // Verifica convites pendentes a cada minuto
     const interval = setInterval(checkPendingInvites, 60000);
     return () => clearInterval(interval);
   }, []);

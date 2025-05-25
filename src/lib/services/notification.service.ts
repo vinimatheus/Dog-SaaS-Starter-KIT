@@ -37,7 +37,6 @@ export class NotificationService {
       });
     } catch (error) {
       console.error("[NotificationService] Error creating notification:", error);
-      // Retorna um objeto vazio em vez de falhar
       return null;
     }
   }
@@ -55,7 +54,6 @@ export class NotificationService {
       });
     } catch (error) {
       console.error("[NotificationService] Error getting unread notifications:", error);
-      // Retorna array vazio em vez de falhar
       return [];
     }
   }

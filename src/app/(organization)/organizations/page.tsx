@@ -25,13 +25,11 @@ export default async function OrganizationsPage({ searchParams }: PageProps) {
     redirect("/login");
   }
 
-  // Busca o usuário para verificar se tem nome
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { name: true }
   });
 
-  // Se o usuário não tem nome, redireciona para onboarding
   if (!user?.name) {
     redirect("/onboarding");
   }
@@ -78,7 +76,6 @@ export default async function OrganizationsPage({ searchParams }: PageProps) {
     }),
   ]);
 
-  // Se não houver organizações e não houver convites pendentes, redireciona para onboarding
   if (organizations.length === 0 && pendingInvites.length === 0) {
     redirect("/onboarding");
   }

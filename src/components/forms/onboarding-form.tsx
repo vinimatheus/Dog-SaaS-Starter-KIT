@@ -45,7 +45,6 @@ export function OnboardingForm({ initialName }: OnboardingFormProps) {
     }
   })
 
-  // Atualiza o nome da organização quando o nome do usuário mudar
   useEffect(() => {
     const subscription = profileForm.watch((value) => {
       if (value.name) {
@@ -128,14 +127,10 @@ export function OnboardingForm({ initialName }: OnboardingFormProps) {
   async function onOrganizationSubmit(data: OrganizationFormData) {
     try {
       setIsLoading(true)
-      // Primeiro atualiza o perfil
       await updateProfile(profileForm.getValues())
-      // Depois cria a organização
       const org = await createOrganization(data)
-      // Por fim, redireciona para a organização
       await completeOnboarding(org.id)
     } catch (err: unknown) {
-      // Se for um erro de redirecionamento do Next.js, não mostra o toast
       if (err && typeof err === 'object' && 'digest' in err && 
           typeof err.digest === 'string' && err.digest.startsWith('NEXT_REDIRECT')) {
         return

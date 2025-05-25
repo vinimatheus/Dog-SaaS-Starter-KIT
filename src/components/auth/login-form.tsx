@@ -103,7 +103,6 @@ export function LoginForm({
 
       if (result?.error) {
         if (result.error === "CSRF") {
-          // Tenta recarregar o token CSRF
           const newToken = await getCsrfToken()
           if (newToken) {
             setCsrfToken(newToken)

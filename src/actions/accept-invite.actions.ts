@@ -151,7 +151,6 @@ export async function acceptInviteAction(inviteIdRaw: string): Promise<AcceptInv
           });
         } catch (notificationError) {
           console.error("Erro ao criar notificação de convite aceito:", notificationError);
-          // Não interrompe o fluxo
         }
       }
 
@@ -245,7 +244,6 @@ export async function rejectInviteAction(inviteIdRaw: string): Promise<AcceptInv
           });
         } catch (notificationError) {
           console.error("Erro ao criar notificação de convite rejeitado:", notificationError);
-          // Não interrompe o fluxo
         }
       }
 

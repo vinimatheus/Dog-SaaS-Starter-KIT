@@ -29,7 +29,7 @@ interface MetadataProps {
 	}>;
 }
 
-export const revalidate = 300; // 5 minutos
+export const revalidate = 300; 
 
 const getOrganizationForMetadata = unstable_cache(
 	async (org_unique_id: string) => {

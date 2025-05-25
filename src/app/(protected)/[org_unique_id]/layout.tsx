@@ -63,9 +63,7 @@ export default async function AuthenticatedOrganizationLayout({
 
 	const userId = session.user.id;
 	
-	// Verifica se a organização está no token JWT
 	if (session.user.orgId === org_unique_id && session.user.orgName && session.user.orgPlan && session.user.orgRole) {
-		// Usa os dados do token JWT
 		const organization = {
 			id: session.user.orgId,
 			name: session.user.orgName,
@@ -81,7 +79,6 @@ export default async function AuthenticatedOrganizationLayout({
 
 		const isOwner = session.user.orgRole === "OWNER";
 
-		// Se não for o dono e a organização estiver no plano FREE, redireciona
 		if (!isOwner && organization.plan === "FREE") {
 			redirect("/organizations?access_denied=true");
 		}
@@ -127,7 +124,6 @@ export default async function AuthenticatedOrganizationLayout({
 		);
 	}
 
-	// Se não estiver no token JWT, busca do banco de dados
 	const organization = await getOrganization(org_unique_id, userId);
 
 	if (!organization) {
@@ -137,7 +133,6 @@ export default async function AuthenticatedOrganizationLayout({
 	const userOrg = organization.User_Organization[0];
 	const isOwner = userOrg.role === "OWNER";
 
-	// Se não for o dono e a organização estiver no plano FREE, redireciona
 	if (!isOwner && organization.plan === "FREE") {
 		redirect("/organizations?access_denied=true");
 	}

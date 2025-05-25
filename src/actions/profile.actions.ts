@@ -34,7 +34,6 @@ export async function updateProfile(
 			};
 		}
 
-		// Verifica se o usuário pertence à organização
 		const userOrg = await prisma.user_Organization.findFirst({
 			where: {
 				user_id: session.user.id,
@@ -51,10 +50,8 @@ export async function updateProfile(
 			};
 		}
 
-		// Valida os dados
 		const validatedData = updateProfileSchema.parse(data);
 
-		// Atualiza o usuário
 		const updatedUser = await prisma.user.update({
 			where: {
 				id: session.user.id,
@@ -65,14 +62,12 @@ export async function updateProfile(
 			},
 		});
 
-		// Atualiza a sessão
 		await unstable_update({
 			user: {
 				name: updatedUser.name,
 			},
 		});
 
-		// Revalida os caminhos
 		revalidatePath(`/${orgUniqueId}/config/profile`);
 		revalidatePath("/", "layout");
 
