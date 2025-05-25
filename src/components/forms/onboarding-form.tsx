@@ -3,17 +3,16 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { CheckCircle2, ArrowRight, ArrowLeft, Sparkles } from "lucide-react"
+import { CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { profileSchema, organizationSchema, planSchema } from "@/schemas/onboarding"
-import { updateProfile, createOrganization, completeOnboarding, redirectToCheckout } from "@/actions/onboarding.actions"
+import { profileSchema, organizationSchema } from "@/schemas/onboarding"
+import { updateProfile, createOrganization, completeOnboarding } from "@/actions/onboarding.actions"
 import { toast } from "sonner"
-import { PlanType } from "@prisma/client"
 
 type ProfileFormData = {
   name: string
@@ -21,11 +20,6 @@ type ProfileFormData = {
 
 type OrganizationFormData = {
   name: string
-  plan: PlanType
-}
-
-type PlanFormData = {
-  plan: PlanType
 }
 
 type OnboardingFormProps = {
@@ -35,7 +29,6 @@ type OnboardingFormProps = {
 export function OnboardingForm({ initialName }: OnboardingFormProps) {
   const [currentStep, setCurrentStep] = useState(1)
   const [direction, setDirection] = useState(0)
-  const [organizationId, setOrganizationId] = useState<string>("")
   const [isLoading, setIsLoading] = useState(false)
 
   const profileForm = useForm<ProfileFormData>({
@@ -48,15 +41,7 @@ export function OnboardingForm({ initialName }: OnboardingFormProps) {
   const organizationForm = useForm<OrganizationFormData>({
     resolver: zodResolver(organizationSchema),
     defaultValues: {
-      name: `${profileForm.getValues("name")}'s Organization`,
-      plan: PlanType.FREE
-    }
-  })
-
-  const planForm = useForm<PlanFormData>({
-    resolver: zodResolver(planSchema),
-    defaultValues: {
-      plan: PlanType.FREE
+      name: `${profileForm.getValues("name")}'s Organization`
     }
   })
 
@@ -69,16 +54,6 @@ export function OnboardingForm({ initialName }: OnboardingFormProps) {
     })
     return () => subscription.unsubscribe()
   }, [profileForm, organizationForm])
-
-  // Atualiza o plano da organização quando o plano mudar
-  useEffect(() => {
-    const subscription = planForm.watch((value) => {
-      if (value.plan) {
-        organizationForm.setValue("plan", value.plan)
-      }
-    })
-    return () => subscription.unsubscribe()
-  }, [planForm, organizationForm])
 
   const steps = [
     {
@@ -135,89 +110,6 @@ export function OnboardingForm({ initialName }: OnboardingFormProps) {
           </form>
         </Form>
       )
-    },
-    {
-      id: 3,
-      title: "Escolha seu Plano",
-      description: "Selecione o plano que melhor atende suas necessidades",
-      content: (
-        <Form {...planForm}>
-          <form onSubmit={planForm.handleSubmit(onPlanSubmit)} className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div 
-                className={cn(
-                  "relative rounded-lg border p-4 cursor-pointer transition-all",
-                  planForm.watch("plan") === PlanType.FREE 
-                    ? "border-primary bg-primary/5" 
-                    : "border-border hover:border-primary/50"
-                )}
-                onClick={() => planForm.setValue("plan", PlanType.FREE)}
-              >
-                <div className="flex flex-col gap-2">
-                  <h3 className="font-semibold">Plano Free</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Perfeito para começar
-                  </p>
-                  <ul className="text-sm space-y-2 mt-2">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                      <span>Até 3 membros</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                      <span>Funcionalidades básicas</span>
-                    </li>
-                  </ul>
-                </div>
-                {planForm.watch("plan") === PlanType.FREE && (
-                  <div className="absolute top-2 right-2">
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                  </div>
-                )}
-              </div>
-
-              <div 
-                className={cn(
-                  "relative rounded-lg border p-4 cursor-pointer transition-all",
-                  planForm.watch("plan") === PlanType.PRO 
-                    ? "border-primary bg-primary/5" 
-                    : "border-border hover:border-primary/50"
-                )}
-                onClick={() => planForm.setValue("plan", PlanType.PRO)}
-              >
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold">Plano Pro</h3>
-                    <Sparkles className="h-4 w-4 text-primary" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Para equipes maiores
-                  </p>
-                  <ul className="text-sm space-y-2 mt-2">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                      <span>Membros ilimitados</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                      <span>Convites em massa</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                      <span>Recursos avançados</span>
-                    </li>
-                  </ul>
-                </div>
-                {planForm.watch("plan") === PlanType.PRO && (
-                  <div className="absolute top-2 right-2">
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                  </div>
-                )}
-              </div>
-            </div>
-          </form>
-        </Form>
-      )
     }
   ]
 
@@ -235,27 +127,13 @@ export function OnboardingForm({ initialName }: OnboardingFormProps) {
 
   async function onOrganizationSubmit(data: OrganizationFormData) {
     try {
-      const org = await createOrganization(data)
-      setOrganizationId(org.id)
-      handleNext()
-    } catch (err) {
-      console.error("Erro ao criar organização:", err)
-      toast.error("Erro ao criar organização. Tente novamente.")
-    }
-  }
-
-  async function onPlanSubmit(data: PlanFormData) {
-    try {
-      if (!organizationId) {
-        throw new Error("ID da organização não encontrado")
-      }
-
       setIsLoading(true)
-      if (data.plan === PlanType.PRO) {
-        await redirectToCheckout(organizationId)
-      } else {
-        await completeOnboarding(organizationId)
-      }
+      // Primeiro atualiza o perfil
+      await updateProfile(profileForm.getValues())
+      // Depois cria a organização
+      const org = await createOrganization(data)
+      // Por fim, redireciona para a organização
+      await completeOnboarding(org.id)
     } catch (err: unknown) {
       // Se for um erro de redirecionamento do Next.js, não mostra o toast
       if (err && typeof err === 'object' && 'digest' in err && 
@@ -397,22 +275,13 @@ export function OnboardingForm({ initialName }: OnboardingFormProps) {
               case 2:
                 organizationForm.handleSubmit(onOrganizationSubmit)()
                 break
-              case 3:
-                planForm.handleSubmit(onPlanSubmit)()
-                break
             }
           }}
           disabled={isLoading}
         >
           {currentStep === steps.length ? (
             <>
-              {isLoading ? (
-                "Processando..."
-              ) : planForm.watch("plan") === PlanType.PRO ? (
-                "Ir para Pagamento"
-              ) : (
-                "Finalizar"
-              )}
+              {isLoading ? "Processando..." : "Finalizar"}
               <ArrowRight className="h-4 w-4 ml-2" />
             </>
           ) : (

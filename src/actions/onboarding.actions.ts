@@ -7,6 +7,7 @@ import { PlanType } from "@prisma/client"
 import { logSecurityEvent } from "@/lib/security-logger"
 import { headers } from "next/headers"
 import { createCheckoutSession } from "@/actions/stripe.actions"
+import { revalidatePath } from "next/cache"
 
 export async function updateProfile(data: { name: string }) {
   const session = await auth()
@@ -29,9 +30,12 @@ export async function updateProfile(data: { name: string }) {
     userId: session.user.id,
     metadata: { name: data.name }
   })
+
+  // Revalida o cache da página de onboarding
+  revalidatePath("/onboarding")
 }
 
-export async function createOrganization(data: { name: string, plan: PlanType }) {
+export async function createOrganization(data: { name: string }) {
   const session = await auth()
 
   if (!session?.user?.id) {
@@ -43,32 +47,12 @@ export async function createOrganization(data: { name: string, plan: PlanType })
     throw new Error("Não autorizado")
   }
 
-  // Validação adicional do plano
-  if (data.plan === PlanType.PRO) {
-    // Verificar se o usuário já tem uma organização PRO
-    const existingProOrg = await prisma.organization.findFirst({
-      where: {
-        User_Organization: {
-          some: {
-            user_id: session.user.id,
-            role: "OWNER"
-          }
-        },
-        plan: PlanType.PRO
-      }
-    })
-
-    if (existingProOrg) {
-      throw new Error("Você já possui uma organização com plano PRO")
-    }
-  }
-
   const organization = await prisma.organization.create({
     data: {
       name: data.name,
       owner_user_id: session.user.id,
       uniqueId: `${data.name.toLowerCase().replace(/\s+/g, "-")}-${Math.random().toString(36).substring(2, 8)}`,
-      plan: data.plan,
+      plan: PlanType.FREE,
       User_Organization: {
         create: {
           user_id: session.user.id,
@@ -82,9 +66,13 @@ export async function createOrganization(data: { name: string, plan: PlanType })
     userId: session.user.id,
     metadata: { 
       organizationId: organization.id,
-      plan: data.plan
+      plan: PlanType.FREE
     }
   })
+
+  // Revalida o cache da página de onboarding e da página da organização
+  revalidatePath("/onboarding")
+  revalidatePath(`/${organization.uniqueId}`)
 
   return organization
 }
@@ -151,6 +139,10 @@ export async function completeOnboarding(organizationId: string) {
   if (!organization) {
     throw new Error("Organização não encontrada")
   }
+
+  // Revalida o cache da página de onboarding e da página da organização
+  revalidatePath("/onboarding")
+  revalidatePath(`/${organization.uniqueId}`)
 
   // O redirect do Next.js deve ser chamado diretamente, sem try/catch
   redirect(`/${organization.uniqueId}`)
