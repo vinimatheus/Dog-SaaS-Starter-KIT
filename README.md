@@ -175,6 +175,64 @@ npm run lint         # Executa a verificação de linting
 - Proteção contra bots
 - Sessões com expiração
 
+### 🔒 Segurança de IPs do Stripe
+
+O projeto implementa verificação robusta de IPs para garantir que todas as comunicações com o Stripe sejam autênticas:
+
+#### Webhooks
+- Verificação automática dos IPs oficiais do Stripe
+- Cache de IPs atualizado a cada 24 horas
+- Endpoints oficiais:
+  - Webhooks: `https://stripe.com/files/ips/ips_webhooks.json`
+  - API: `https://stripe.com/files/ips/ips_api.json`
+
+#### Configuração de Firewall
+Para maior segurança, configure seu firewall para permitir apenas os IPs oficiais do Stripe:
+
+1. **Webhooks** (IPs que enviam eventos):
+```bash
+# Lista de IPs de webhook
+3.18.12.63
+3.130.192.231
+13.235.14.237
+13.235.122.149
+18.211.135.69
+35.154.171.200
+52.15.183.38
+54.88.130.119
+54.88.130.237
+54.187.174.169
+54.187.205.235
+54.187.216.72
+```
+
+2. **API** (IPs para comunicação com a API):
+```bash
+# Baixe a lista completa de IPs da API
+curl https://stripe.com/files/ips/ips_api.txt
+```
+
+#### Monitoramento
+- Inscreva-se na [lista de anúncios da API](https://groups.google.com/a/lists.stripe.com/g/api-announce)
+- Receba notificações 7 dias antes de mudanças nos IPs
+- Verifique periodicamente os endpoints oficiais:
+  - `https://stripe.com/files/ips/ips_api.txt`
+  - `https://stripe.com/files/ips/ips_webhooks.txt`
+
+#### Implementação
+O sistema verifica automaticamente:
+1. IP de origem de cada requisição
+2. Assinatura do webhook
+3. Cache de IPs atualizado
+4. Fallback para cache em caso de falha
+
+Para ambientes com proxy/CDN, certifique-se de configurar:
+```nginx
+# Exemplo de configuração Nginx
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Real-IP $remote_addr;
+```
+
 ## 📚 Estrutura do Projeto
 
 ```
