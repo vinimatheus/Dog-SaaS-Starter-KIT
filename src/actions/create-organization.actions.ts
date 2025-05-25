@@ -34,11 +34,11 @@ function extractName(formData: FormData): string {
 async function generateUniqueSlug(name: string): Promise<string> {
   const baseSlug = name
     .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
 
   const slugBase = baseSlug || `org-${nanoid(6)}`
 

@@ -116,19 +116,16 @@ export const metadata: Metadata = {
 	category: "technology",
 	classification: "SaaS Starter Kit",
 	referrer: "origin-when-cross-origin",
-	themeColor: [
-		{ media: "(prefers-color-scheme: light)", color: "white" },
-		{ media: "(prefers-color-scheme: dark)", color: "black" }
-	],
-	viewport: {
-		width: "device-width",
-		initialScale: 1,
-		maximumScale: 1,
-	},
 	other: {
 		"msapplication-TileColor": "#000000",
 		"msapplication-config": "/browserconfig.xml",
 	}
+}
+
+export const viewport = {
+	width: "device-width",
+	initialScale: 1,
+	maximumScale: 1,
 }
 
 export default function RootLayout({
@@ -151,7 +148,6 @@ export default function RootLayout({
 				<link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
 				<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#000000" />
 				<meta name="msapplication-TileColor" content="#000000" />
-				<meta name="theme-color" content="#000000" />
 			</head>
 			<Analytics/>
 			<body

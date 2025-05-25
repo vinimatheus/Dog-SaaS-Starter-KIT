@@ -50,7 +50,12 @@ export async function createOrganization(data: { name: string }) {
     data: {
       name: data.name,
       owner_user_id: session.user.id,
-      uniqueId: `${data.name.toLowerCase().replace(/\s+/g, "-")}-${Math.random().toString(36).substring(2, 8)}`,
+      uniqueId: `${data.name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')}-${Math.random().toString(36).substring(2, 8)}`,
       plan: PlanType.FREE,
       User_Organization: {
         create: {
