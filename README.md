@@ -14,6 +14,12 @@ Um kit inicial moderno e robusto para construir seu SaaS, construído com as mel
 - 🤖 **Proteção** contra bots com reCAPTCHA
 - 🐳 **Docker** para desenvolvimento e produção
 
+## 🎥 Demonstração
+
+<video src="https://github.com/vinimatheus/starter-org-dog/public/video.mp4" controls width="100%"></video>
+
+> 💡 **Dica**: Assista ao vídeo para ver o Dog SaaS em ação e entender como ele pode acelerar seu desenvolvimento.
+
 ## 🚀 Começando
 
 ### Pré-requisitos
