@@ -44,6 +44,13 @@ export type AuditEventType =
   | "checkout_redirect"
   | "profile_update"
   | "system_error"
+  | "webhook_processed"
+  
+  // Customer Portal Events
+  | "customer_portal_accessed"
+  | "customer_portal_return"
+  | "portal_activity"
+  | "subscription_synced"
 
 export type AuditEventMetadata = {
   // Organization context

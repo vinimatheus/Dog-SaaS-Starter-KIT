@@ -32,10 +32,31 @@ const getOrganization = unstable_cache(
 					},
 				},
 			},
-			include: {
+			select: {
+				id: true,
+				name: true,
+				owner_user_id: true,
+				uniqueId: true,
+				plan: true,
+				stripeCustomerId: true,
+				stripeSubscriptionId: true,
+				trialStartDate: true,
+				trialEndDate: true,
+				trialUsed: true,
+				subscriptionStatus: true,
+				currentPeriodStart: true,
+				currentPeriodEnd: true,
+				cancelAtPeriodEnd: true,
+				lastPaymentDate: true,
+				nextBillingDate: true,
+				paymentMethodLast4: true,
+				paymentMethodBrand: true,
 				User_Organization: {
 					where: {
 						user_id: userId,
+					},
+					select: {
+						role: true,
 					},
 				},
 			},
@@ -72,6 +93,17 @@ export default async function AuthenticatedOrganizationLayout({
 			uniqueId: org_unique_id,
 			stripeCustomerId: null,
 			stripeSubscriptionId: null,
+			trialStartDate: null,
+			trialEndDate: null,
+			trialUsed: false,
+			subscriptionStatus: null,
+			currentPeriodStart: null,
+			currentPeriodEnd: null,
+			cancelAtPeriodEnd: false,
+			lastPaymentDate: null,
+			nextBillingDate: null,
+			paymentMethodLast4: null,
+			paymentMethodBrand: null,
 			User_Organization: [{
 				role: session.user.orgRole
 			}]

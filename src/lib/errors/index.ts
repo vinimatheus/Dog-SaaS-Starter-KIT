@@ -520,5 +520,8 @@ export function isSystemError(error: any): error is SystemError {
 export { errorHandler, ErrorHandler, type ErrorHandlingResult, type ErrorContext } from './error-handler'
 export { errorLogger, ErrorLogger, type ErrorLogEntry, type ErrorLoggingContext } from './error-logger'
 
+// Re-export Stripe-specific errors
+export * from './stripe-errors'
+
 // Re-export utility functions
 export * from './utils'

@@ -1,43 +1,47 @@
-import { auth } from "@/auth"
-import { prisma } from "@/lib/prisma"
-import { redirect } from "next/navigation"
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 
-import { Metadata } from "next"
-import { stripe } from "@/lib/stripe"
-import { PageLayout } from "@/components/layout/page-layout"
-import { SubscriptionManager } from "@/components/subscription/subscription-manager"
+import { Metadata } from "next";
+import { stripe } from "@/lib/stripe";
+import { PageLayout } from "@/components/layout/page-layout";
+import { SubscriptionManager } from "@/components/subscription/subscription-manager";
+import { handlePortalReturn } from "@/actions/stripe.actions";
 
 interface MetadataProps {
   params: Promise<{
-    org_unique_id: string
-  }>
+    org_unique_id: string;
+  }>;
 }
 
 export async function generateMetadata({
   params,
 }: MetadataProps): Promise<Metadata> {
-  await params
+  await params;
 
   return {
     title: "Assinatura",
     description: "Gerencie a assinatura da sua organização",
-  }
+  };
 }
 
 interface PageProps {
   params: Promise<{
-    org_unique_id: string
-  }>
+    org_unique_id: string;
+  }>;
+  searchParams: Promise<{
+    portal_return?: string;
+    session_id?: string;
+  }>;
 }
 
-export default async function SubscriptionPage({
-  params,
-}: PageProps) {
-  const { org_unique_id } = await params
-  const session = await auth()
+export default async function SubscriptionPage({ params, searchParams }: PageProps) {
+  const { org_unique_id } = await params;
+  const { portal_return, session_id } = await searchParams;
+  const session = await auth();
 
   if (!session?.user?.id) {
-    redirect("/")
+    redirect("/");
   }
 
   const organization = await prisma.organization.findUnique({
@@ -49,28 +53,38 @@ export default async function SubscriptionPage({
         },
       },
     },
-  })
+  });
 
   if (!organization) {
-    redirect("/organizations")
+    redirect("/organizations");
   }
 
-  const currentUserOrg = organization.User_Organization[0]
+  const currentUserOrg = organization.User_Organization[0];
 
   if (!currentUserOrg) {
-    redirect("/organizations")
+    redirect("/organizations");
   }
 
-  const isOwner = currentUserOrg.role === "OWNER"
+  const isOwner = currentUserOrg.role === "OWNER";
 
-  let subscription = undefined
+  // Handle portal return - sync data if user returned from customer portal
+  if (portal_return === 'true' && isOwner) {
+    try {
+      await handlePortalReturn(organization.id);
+    } catch (error) {
+      console.error("Error handling portal return:", error);
+      // Don't fail the page load, just log the error
+    }
+  }
+
+  let subscription = undefined;
   if (organization.stripeSubscriptionId) {
     try {
       const stripeSubscription = await stripe.subscriptions.retrieve(
         organization.stripeSubscriptionId
-      )
+      );
 
-      const item = stripeSubscription.items.data[0]
+      const item = stripeSubscription.items.data[0];
 
       subscription = {
         status: stripeSubscription.status,
@@ -78,9 +92,9 @@ export default async function SubscriptionPage({
         cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
         lastPaymentDate: new Date(item.current_period_start * 1000),
         nextBillingDate: new Date(item.current_period_end * 1000),
-      }
+      };
     } catch (error) {
-      console.error("Erro ao buscar assinatura:", error)
+      console.error("Erro ao buscar assinatura:", error);
     }
   }
 
@@ -94,7 +108,6 @@ export default async function SubscriptionPage({
           organizationId={organization.id}
           plan={organization.plan}
           isOwner={isOwner}
-          subscription={subscription}
         />
 
         {!isOwner && (
@@ -106,5 +119,5 @@ export default async function SubscriptionPage({
         )}
       </div>
     </PageLayout>
-  )
-} 
+  );
+}
