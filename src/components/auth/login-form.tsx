@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Logo } from "../ui/logo"
+import { NoSSR } from "@/components/ui/no-ssr"
 
 const loginSchema = z.object({
   email: z.string()
@@ -184,8 +185,9 @@ export function LoginForm({
         </p>
       </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <NoSSR>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
             control={form.control}
             name="email"
@@ -272,8 +274,9 @@ export function LoginForm({
               )}
             </Button>
           )}
-        </form>
-      </Form>
+          </form>
+        </Form>
+      </NoSSR>
 
       <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
         <span className="relative z-10 px-2 text-muted-foreground">

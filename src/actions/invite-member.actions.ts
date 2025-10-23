@@ -8,13 +8,13 @@ import { addDays } from "date-fns"
 import { Role, InviteStatus, PlanType } from "@prisma/client"
 import { z } from "zod"
 import { unstable_cache } from "next/cache"
+import { CreateInviteSchema } from "@/schemas/security"
+import { auditLogger } from "@/lib/audit-logger"
+import { permissionManager } from "@/lib/permission-manager"
+import { checkAndUpdateExpiredInvite } from "@/lib/invite-cleanup"
+import { recordOperationDuration, incrementSecurityCounter } from "@/lib/security"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
-
-const InviteSchema = z.object({
-  email: z.string().email(),
-  role: z.nativeEnum(Role),
-})
 
 interface ManageInviteResult {
   success: boolean
@@ -72,30 +72,32 @@ async function sendInviteEmail(invite: { id: string; email: string }, organizati
   }
 }
 
-const checkInvitePermissions = unstable_cache(
-  async (userId: string, organizationId: string) => {
-    const userOrg = await prisma.user_Organization.findFirst({
-      where: {
-        user_id: userId,
-        organization_id: organizationId,
-        role: {
-          in: ["OWNER", "ADMIN"],
-        },
-      },
-      include: {
-        organization: true,
-      },
-    })
+// Legacy checkInvitePermissions function - replaced by PermissionManager
+const checkInvitePermissions = async (userId: string, organizationId: string) => {
+  await permissionManager.validatePermission(userId, organizationId, "canSendInvites", {
+    logFailure: true,
+    context: "checkInvitePermissions"
+  })
 
-    if (!userOrg) {
-      throw new Error("Você não tem permissão para gerenciar convites")
+  // Return organization data for backward compatibility
+  const organization = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    include: {
+      User_Organization: {
+        where: { user_id: userId }
+      }
     }
+  })
 
-    return userOrg
-  },
-  ["invite-permissions"],
-  { revalidate: 60 }
-)
+  if (!organization || organization.User_Organization.length === 0) {
+    throw new Error("Você não tem permissão para gerenciar convites")
+  }
+
+  return {
+    organization,
+    role: organization.User_Organization[0].role
+  }
+}
 
 export async function resendInviteAction(inviteId: string): Promise<ManageInviteResult> {
   try {
@@ -108,16 +110,27 @@ export async function resendInviteAction(inviteId: string): Promise<ManageInvite
       return { success: false, error: "ID do convite inválido" }
     }
 
-    const invite = await prisma.invite.findUnique({
-      where: { id: inviteId },
-      include: { organization: true },
-    })
-
-    if (!invite) {
-      return { success: false, error: "Convite não encontrado" }
-    }
-
     return await prisma.$transaction(async (tx) => {
+      // Check and update expiration status before processing
+      const isValidInvite = await checkAndUpdateExpiredInvite(inviteId)
+      if (!isValidInvite) {
+        return {
+          success: false,
+          error: "Este convite expirou e não pode ser reenviado",
+          status: "EXPIRED",
+        }
+      }
+
+      // Lock the invite to prevent concurrent modifications
+      const invite = await tx.invite.findUnique({
+        where: { id: inviteId },
+        include: { organization: true },
+      })
+
+      if (!invite) {
+        return { success: false, error: "Convite não encontrado" }
+      }
+
       await checkInvitePermissions(session.user.id, invite.organization_id)
 
       if (invite.status !== "PENDING") {
@@ -125,18 +138,6 @@ export async function resendInviteAction(inviteId: string): Promise<ManageInvite
           success: false,
           error: `Este convite não pode ser reenviado pois está ${invite.status === "ACCEPTED" ? "aceito" : invite.status === "REJECTED" ? "rejeitado" : "expirado"}`,
           status: invite.status,
-        }
-      }
-
-      if (invite.expires_at < new Date()) {
-        await tx.invite.update({
-          where: { id: inviteId },
-          data: { status: "EXPIRED" },
-        })
-        return {
-          success: false,
-          error: "Este convite expirou e não pode ser reenviado",
-          status: "EXPIRED",
         }
       }
 
@@ -153,8 +154,13 @@ export async function resendInviteAction(inviteId: string): Promise<ManageInvite
         },
       })
 
+      await auditLogger.logInviteAction("invite_resent", session.user.id, inviteId, invite.organization_id, invite.email)
+
       revalidatePath(`/${invite.organization.uniqueId}`)
       return { success: true, status: "PENDING" }
+    }, {
+      isolationLevel: 'Serializable',
+      timeout: 10000
     })
   } catch (error) {
     logError("ResendInvite", error, auth().then(s => s?.user?.id).catch(() => undefined))
@@ -176,16 +182,20 @@ export async function deleteInviteAction(inviteId: string): Promise<ManageInvite
       return { success: false, error: "ID do convite inválido" }
     }
 
-    const invite = await prisma.invite.findUnique({
-      where: { id: inviteId },
-      include: { organization: true },
-    })
-
-    if (!invite) {
-      return { success: false, error: "Convite não encontrado" }
-    }
-
     return await prisma.$transaction(async (tx) => {
+      // Check and update expiration status before processing
+      await checkAndUpdateExpiredInvite(inviteId)
+
+      // Lock the invite to prevent concurrent modifications
+      const invite = await tx.invite.findUnique({
+        where: { id: inviteId },
+        include: { organization: true },
+      })
+
+      if (!invite) {
+        return { success: false, error: "Convite não encontrado" }
+      }
+
       await checkInvitePermissions(session.user.id, invite.organization_id)
 
       if (invite.status === "ACCEPTED") {
@@ -200,8 +210,15 @@ export async function deleteInviteAction(inviteId: string): Promise<ManageInvite
         where: { id: inviteId },
       })
 
+      await auditLogger.logInviteAction("invite_deleted", session.user.id, inviteId, invite.organization_id, invite.email, {
+        inviteStatus: invite.status
+      })
+
       revalidatePath(`/${invite.organization.uniqueId}`)
       return { success: true }
+    }, {
+      isolationLevel: 'Serializable',
+      timeout: 10000
     })
   } catch (error) {
     logError("DeleteInvite", error, auth().then(s => s?.user?.id).catch(() => undefined))
@@ -212,12 +229,20 @@ export async function deleteInviteAction(inviteId: string): Promise<ManageInvite
   }
 }
 
-export async function inviteMemberAction(formData: FormData) {
+export async function inviteMemberAction(formData: FormData): Promise<ManageInviteResult> {
+  const startTime = Date.now()
   try {
     const session = await auth()
     const userId = session?.user?.id
 
     if (!userId) {
+      await auditLogger.logSecurityViolation(undefined, "User not authenticated", {
+        action: "inviteMemberAction"
+      })
+      await incrementSecurityCounter("access_denied_count", {
+        reason: "not_authenticated",
+        action: "inviteMemberAction"
+      })
       return { success: false, error: "Não autorizado" }
     }
 
@@ -225,82 +250,149 @@ export async function inviteMemberAction(formData: FormData) {
     const role = formData.get("role") as Role
     const organizationId = formData.get("organizationId") as string
 
-    if (!email || !role || !organizationId) {
-      return { success: false, error: "Dados inválidos" }
-    }
-
-    const organization = await prisma.organization.findUnique({
-      where: { id: organizationId },
-    })
-
-    if (!organization) {
-      return { success: false, error: "Organização não encontrada" }
-    }
-
-    if (organization.plan === PlanType.FREE) {
-      return { success: false, error: "Organização está no plano gratuito" }
-    }
-
-    const result = InviteSchema.safeParse({
+    // Validate and sanitize input using security schemas
+    const result = CreateInviteSchema.safeParse({
       email,
       role,
+      organizationId,
     })
 
     if (!result.success) {
-      throw new Error(result.error.errors[0].message)
+      await auditLogger.logValidationFailure(userId, "inviteMemberAction", result.error.errors)
+      await incrementSecurityCounter("security_violations_count", {
+        reason: "validation_failed",
+        userId,
+        action: "inviteMemberAction"
+      })
+      return { 
+        success: false, 
+        error: result.error.errors[0].message 
+      }
     }
 
-    const { email: parsedEmail, role: parsedRole } = result.data
+    const { email: parsedEmail, role: parsedRole, organizationId: parsedOrgId } = result.data
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email: parsedEmail },
-    })
+    // Use atomic transaction to prevent race conditions
+    return await prisma.$transaction(async (tx) => {
+      // Check organization exists and user has permission
+      const organization = await tx.organization.findUnique({
+        where: { id: parsedOrgId }
+      })
 
-    if (existingUser) {
-      const existingMembership = await prisma.user_Organization.findUnique({
+      if (!organization) {
+        await auditLogger.logSecurityViolation(userId, "Organization not found", {
+          organizationId: parsedOrgId,
+          action: "inviteMemberAction"
+        })
+        throw new Error("Organização não encontrada")
+      }
+
+      // Use PermissionManager to check invite permissions
+      const canSendInvites = await permissionManager.canSendInvites(userId, parsedOrgId, {
+        logFailure: true,
+        context: "inviteMemberAction"
+      })
+
+      if (!canSendInvites) {
+        throw new Error("Você não tem permissão para convidar membros")
+      }
+
+      if (organization.plan === PlanType.FREE) {
+        throw new Error("Organização está no plano gratuito")
+      }
+
+      // Check if user already exists and is a member (with lock)
+      const existingUser = await tx.user.findUnique({
+        where: { email: parsedEmail },
+      })
+
+      if (existingUser) {
+        const existingMembership = await tx.user_Organization.findUnique({
+          where: {
+            user_id_organization_id: {
+              user_id: existingUser.id,
+              organization_id: parsedOrgId,
+            },
+          },
+        })
+
+        if (existingMembership) {
+          throw new Error("Usuário já é membro desta organização")
+        }
+      }
+
+      // Check for existing invite with atomic upsert to prevent race conditions
+      const existingInvite = await tx.invite.findUnique({
         where: {
-          user_id_organization_id: {
-            user_id: existingUser.id,
-            organization_id: organizationId,
+          email_organization_id: {
+            email: parsedEmail,
+            organization_id: parsedOrgId,
           },
         },
       })
 
-      if (existingMembership) {
-        throw new Error("Usuário já é membro desta organização")
+      if (existingInvite) {
+        if (existingInvite.status === "PENDING" && existingInvite.expires_at > new Date()) {
+          throw new Error("Já existe um convite pendente para este email")
+        }
+        
+        // Update existing expired or rejected invite
+        const expiresAt = addDays(new Date(), 7)
+        
+        await tx.invite.update({
+          where: { id: existingInvite.id },
+          data: {
+            role: parsedRole,
+            invited_by_id: userId,
+            expires_at: expiresAt,
+            status: "PENDING",
+            updated_at: new Date(),
+          },
+        })
+      } else {
+        // Create new invite
+        const expiresAt = addDays(new Date(), 7)
+        
+        await tx.invite.create({
+          data: {
+            email: parsedEmail,
+            role: parsedRole,
+            organization_id: parsedOrgId,
+            invited_by_id: userId,
+            expires_at: expiresAt,
+          },
+        })
       }
-    }
 
-    const existingInvite = await prisma.invite.findUnique({
-      where: {
-        email_organization_id: {
-          email: parsedEmail,
-          organization_id: organizationId,
-        },
-      },
+      await auditLogger.logInviteAction("invite_sent", userId, existingInvite?.id || "new", parsedOrgId, parsedEmail, {
+        inviteRole: parsedRole
+      })
+
+      // Record successful invite operation metrics
+      await recordOperationDuration("inviteMemberAction", startTime, {
+        userId,
+        organizationId: parsedOrgId,
+        inviteEmail: parsedEmail,
+        inviteRole: parsedRole,
+        success: true
+      })
+
+      await incrementSecurityCounter("invite_operations_count", {
+        userId,
+        organizationId: parsedOrgId,
+        action: "invite_sent",
+        inviteRole: parsedRole
+      })
+
+      revalidatePath(`/${organization.uniqueId}/config/members`)
+      return { success: true }
+    }, {
+      isolationLevel: 'Serializable', // Highest isolation level to prevent race conditions
+      timeout: 10000 // 10 second timeout
     })
-
-    if (existingInvite && existingInvite.status === "PENDING") {
-      throw new Error("Já existe um convite pendente para este email")
-    }
-
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 7) 
-
-    await prisma.invite.create({
-      data: {
-        email: parsedEmail,
-        role: parsedRole,
-        organization_id: organizationId,
-        invited_by_id: userId,
-        expires_at: expiresAt,
-      },
-    })
-
-    revalidatePath(`/${organization.uniqueId}/config/members`)
-    return { success: true }
   } catch (error) {
-    console.error("Erro ao convidar membro:", error)
+    const userId = await auth().then(s => s?.user?.id).catch(() => undefined)
+    logError("InviteMember", error, userId)
     return { 
       success: false, 
       error: error instanceof Error ? error.message : "Erro ao convidar membro" 

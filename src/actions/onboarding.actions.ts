@@ -4,7 +4,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { PlanType } from "@prisma/client"
-import { logSecurityEvent } from "@/lib/security-logger"
+import { auditLogger } from "@/lib/audit-logger"
 import { headers } from "next/headers"
 import { createCheckoutSession } from "@/actions/stripe.actions"
 import { revalidatePath } from "next/cache"
@@ -13,10 +13,8 @@ export async function updateProfile(data: { name: string }) {
   const session = await auth()
 
   if (!session?.user?.id) {
-    const headersList = await headers()
-    await logSecurityEvent("unauthorized_profile_update", {
-      userId: session?.user?.id,
-      ip: headersList.get("x-forwarded-for")
+    await auditLogger.logSecurityViolation(undefined, "User not authenticated", {
+      action: "updateProfile"
     })
     throw new Error("Não autorizado")
   }
@@ -26,9 +24,12 @@ export async function updateProfile(data: { name: string }) {
     data: { name: data.name }
   })
 
-  await logSecurityEvent("profile_update", {
+  await auditLogger.logEvent("profile_update", {
     userId: session.user.id,
-    metadata: { name: data.name }
+    metadata: { 
+      name: data.name,
+      action: "updateProfile"
+    }
   })
 
   revalidatePath("/onboarding")
@@ -38,10 +39,8 @@ export async function createOrganization(data: { name: string }) {
   const session = await auth()
 
   if (!session?.user?.id) {
-    const headersList = await headers()
-    await logSecurityEvent("unauthorized_organization_creation", {
-      userId: session?.user?.id,
-      ip: headersList.get("x-forwarded-for")
+    await auditLogger.logSecurityViolation(undefined, "User not authenticated", {
+      action: "createOrganization"
     })
     throw new Error("Não autorizado")
   }
@@ -66,12 +65,9 @@ export async function createOrganization(data: { name: string }) {
     }
   })
 
-  await logSecurityEvent("organization_creation", {
-    userId: session.user.id,
-    metadata: { 
-      organizationId: organization.id,
-      plan: PlanType.FREE
-    }
+  await auditLogger.logOrganizationManagement("organization_creation", session.user.id, organization.id, organization.name, {
+    organizationUniqueId: organization.uniqueId,
+    plan: PlanType.FREE
   })
 
   revalidatePath("/onboarding")
@@ -84,10 +80,9 @@ export async function redirectToCheckout(organizationId: string) {
   const session = await auth()
 
   if (!session?.user?.id) {
-    const headersList = await headers()
-    await logSecurityEvent("unauthorized_checkout_redirect", {
-      userId: session?.user?.id,
-      ip: headersList.get("x-forwarded-for")
+    await auditLogger.logSecurityViolation(undefined, "User not authenticated", {
+      action: "redirectToCheckout",
+      organizationId
     })
     throw new Error("Não autorizado")
   }
@@ -111,9 +106,12 @@ export async function redirectToCheckout(organizationId: string) {
   const { url } = await createCheckoutSession(organizationId)
   
   if (url) {
-    await logSecurityEvent("checkout_redirect", {
+    await auditLogger.logEvent("checkout_redirect", {
       userId: session.user.id,
-      metadata: { organizationId }
+      metadata: { 
+        organizationId,
+        action: "redirectToCheckout"
+      }
     })
     redirect(url)
   }

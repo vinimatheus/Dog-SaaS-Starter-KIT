@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { PendingInvites } from "./pending-invites";
+import { NoSSR } from "@/components/ui/no-ssr";
 
 export function PendingInvitesMenu() {
   const [hasInvites, setHasInvites] = useState(false);
@@ -39,28 +40,30 @@ export function PendingInvitesMenu() {
   if (!hasInvites && !isLoading) return null;
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <>
-              <Mail className="h-5 w-5" />
-              {hasInvites && (
-                <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-blue-500 text-white text-xs rounded-full">
-                  !
-                </span>
-              )}
-            </>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 max-w-[90vw]">
-        <div className="p-2">
-          <PendingInvites onInviteProcessed={checkPendingInvites} />
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <NoSSR>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="relative">
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                <Mail className="h-5 w-5" />
+                {hasInvites && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-blue-500 text-white text-xs rounded-full">
+                    !
+                  </span>
+                )}
+              </>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-80 max-w-[90vw]">
+          <div className="p-2">
+            <PendingInvites onInviteProcessed={checkPendingInvites} />
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </NoSSR>
   );
 } 

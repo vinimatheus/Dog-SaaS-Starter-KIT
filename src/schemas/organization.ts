@@ -1,9 +1,10 @@
 import * as z from "zod";
+import { CreateOrganizationSchema as EnhancedCreateOrganizationSchema, UpdateOrganizationSchema } from "./security";
 
-export const CreateOrganizationSchema = z.object({
-  name: z.string()
-    .min(1, "O nome é obrigatório")
-    .max(50, "O nome deve ter no máximo 50 caracteres")
-});
+// Keep backward compatibility while using enhanced schemas
+export const CreateOrganizationSchema = EnhancedCreateOrganizationSchema;
 
-export type CreateOrganizationValues = z.infer<typeof CreateOrganizationSchema>; 
+export const UpdateOrganizationFormSchema = UpdateOrganizationSchema;
+
+export type CreateOrganizationValues = z.infer<typeof CreateOrganizationSchema>;
+export type UpdateOrganizationValues = z.infer<typeof UpdateOrganizationFormSchema>; 

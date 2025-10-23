@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { NotificationList } from "./notification-list";
 import { getUnreadNotificationsAction, markAllAsReadAction } from "@/actions/notification.actions";
 import { Notification } from "@prisma/client";
+import { NoSSR } from "@/components/ui/no-ssr";
 
 export function NotificationMenu() {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -47,40 +48,42 @@ export function NotificationMenu() {
   }, []);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-red-500 text-white text-xs rounded-full">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-          <h3 className="text-sm font-medium">Notificações</h3>
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleMarkAllAsRead}
-              className="text-xs"
-              disabled={isLoading}
-            >
-              Marcar todas como lidas
-            </Button>
-          )}
-        </div>
-        <div className="max-h-80 overflow-y-auto">
-          <NotificationList 
-            notifications={notifications} 
-            isLoading={isLoading} 
-            onRefresh={fetchNotifications}
-          />
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <NoSSR>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-red-500 text-white text-xs rounded-full">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-80">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+            <h3 className="text-sm font-medium">Notificações</h3>
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleMarkAllAsRead}
+                className="text-xs"
+                disabled={isLoading}
+              >
+                Marcar todas como lidas
+              </Button>
+            )}
+          </div>
+          <div className="max-h-80 overflow-y-auto">
+            <NotificationList 
+              notifications={notifications} 
+              isLoading={isLoading} 
+              onRefresh={fetchNotifications}
+            />
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </NoSSR>
   );
 } 

@@ -7,9 +7,12 @@ import { Role, Prisma } from "@prisma/client"
 import { z } from "zod"
 import { unstable_cache } from "next/cache"
 import { NotificationService } from "@/lib/services/notification.service"
+import { CuidSchema } from "@/schemas/security"
+import { auditLogger } from "@/lib/audit-logger"
+import { checkAndUpdateExpiredInvite } from "@/lib/invite-cleanup"
 
 const InviteTokenSchema = z.object({
-  inviteId: z.string().min(1, "ID de convite inválido"),
+  inviteId: CuidSchema,
 })
 
 interface AcceptInviteResult {
@@ -58,34 +61,15 @@ function validateInvite(invite: InviteWithOrganization | null, userEmail: string
   return null
 }
 
-async function registerMembership(
-  tx: Prisma.TransactionClient, 
-  userId: string, 
-  organizationId: string, 
-  role: Role
-): Promise<string | null> {
-  try {
-    const existing = await tx.user_Organization.findFirst({
-      where: { user_id: userId, organization_id: organizationId },
-    })
 
-    if (existing) return "Você já faz parte desta organização"
-
-    await tx.user_Organization.create({
-      data: { user_id: userId, organization_id: organizationId, role },
-    })
-
-    return null
-  } catch (error) {
-    logError("RegisterMembership", error, userId)
-    throw new Error("Erro ao registrar associação")
-  }
-}
 
 export async function acceptInviteAction(inviteIdRaw: string): Promise<AcceptInviteResult> {
   try {
     const result = InviteTokenSchema.safeParse({ inviteId: inviteIdRaw })
     if (!result.success) {
+      await auditLogger.logValidationFailure(undefined, "acceptInviteAction", result.error.errors, {
+        inviteId: inviteIdRaw
+      })
       return { 
         success: false, 
         error: result.error.errors[0].message 
@@ -99,16 +83,22 @@ export async function acceptInviteAction(inviteIdRaw: string): Promise<AcceptInv
     const userEmail = session?.user?.email
 
     if (!userId || !userEmail) {
+      await auditLogger.logSecurityViolation(undefined, "User not authenticated", {
+        action: "acceptInviteAction",
+        inviteId
+      })
       return { success: false, error: "Você precisa estar logado para aceitar convites" }
     }
 
-    const invite = await getInvite(inviteId)
-    
-    if (!invite) {
-      return { success: false, error: "Convite não encontrado" }
+    // Check and update expiration status before processing
+    const isValidInvite = await checkAndUpdateExpiredInvite(inviteId)
+    if (!isValidInvite) {
+      return { success: false, error: "Este convite expirou" }
     }
 
+    // Use serializable transaction to prevent race conditions
     return await prisma.$transaction(async (tx) => {
+      // Lock the invite row to prevent concurrent modifications
       const freshInvite = await tx.invite.findUnique({
         where: { id: inviteId },
         include: { organization: true, invited_by: true },
@@ -116,12 +106,6 @@ export async function acceptInviteAction(inviteIdRaw: string): Promise<AcceptInv
 
       const validationError = validateInvite(freshInvite, userEmail)
       if (validationError) {
-        if (validationError === "Este convite expirou" && freshInvite) {
-          await tx.invite.update({
-            where: { id: inviteId },
-            data: { status: "EXPIRED" }
-          })
-        }
         return { success: false, error: validationError }
       }
 
@@ -129,16 +113,46 @@ export async function acceptInviteAction(inviteIdRaw: string): Promise<AcceptInv
         return { success: false, error: "Convite não encontrado" }
       }
 
-      const membershipError = await registerMembership(tx, userId, freshInvite.organization.id, freshInvite.role as Role)
-      if (membershipError) {
-        return { success: false, error: membershipError }
+      // Check if user is already a member (race condition protection)
+      const existingMembership = await tx.user_Organization.findFirst({
+        where: { 
+          user_id: userId, 
+          organization_id: freshInvite.organization.id 
+        },
+      })
+
+      if (existingMembership) {
+        // Update invite status to accepted since user is already a member
+        await tx.invite.update({
+          where: { id: inviteId },
+          data: { status: "ACCEPTED" },
+        })
+        return { 
+          success: true,
+          redirectUrl: `/${freshInvite.organization.uniqueId}`
+        }
       }
 
+      // Create membership atomically
+      await tx.user_Organization.create({
+        data: { 
+          user_id: userId, 
+          organization_id: freshInvite.organization.id, 
+          role: freshInvite.role as Role 
+        },
+      })
+
+      // Update invite status
       await tx.invite.update({
         where: { id: inviteId },
         data: { status: "ACCEPTED" },
       })
+
+      await auditLogger.logInviteAction("invite_accepted", userId, inviteId, freshInvite.organization.id, freshInvite.email, {
+        inviteRole: freshInvite.role as Role
+      })
       
+      // Create notification (outside transaction to avoid blocking)
       if (freshInvite.invited_by) {
         try {
           await NotificationService.createNotification({
@@ -162,6 +176,9 @@ export async function acceptInviteAction(inviteIdRaw: string): Promise<AcceptInv
         success: true,
         redirectUrl: `/${freshInvite.organization.uniqueId}`
       }
+    }, {
+      isolationLevel: 'Serializable', // Prevent race conditions
+      timeout: 10000 // 10 second timeout
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -206,6 +223,9 @@ export async function rejectInviteAction(inviteIdRaw: string): Promise<AcceptInv
       return { success: false, error: "Convite não encontrado" }
     }
 
+    // Check and update expiration status before processing
+    await checkAndUpdateExpiredInvite(inviteId)
+
     return await prisma.$transaction(async (tx) => {
       const freshInvite = await tx.invite.findUnique({
         where: { id: inviteId },
@@ -214,12 +234,6 @@ export async function rejectInviteAction(inviteIdRaw: string): Promise<AcceptInv
 
       const validationError = validateInvite(freshInvite, userEmail)
       if (validationError) {
-        if (validationError === "Este convite expirou" && freshInvite) {
-          await tx.invite.update({
-            where: { id: inviteId },
-            data: { status: "EXPIRED" }
-          })
-        }
         return { success: false, error: validationError }
       }
 
@@ -230,6 +244,10 @@ export async function rejectInviteAction(inviteIdRaw: string): Promise<AcceptInv
       await tx.invite.update({
         where: { id: inviteId },
         data: { status: "REJECTED" },
+      })
+
+      await auditLogger.logInviteAction("invite_rejected", userId, inviteId, freshInvite.organization.id, freshInvite.email, {
+        inviteRole: freshInvite.role as Role
       })
       
       if (freshInvite.invited_by) {

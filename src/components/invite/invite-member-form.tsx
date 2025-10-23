@@ -18,6 +18,7 @@ import {
   FormDescription
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { NoSSR } from '@/components/ui/no-ssr';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -115,8 +116,9 @@ export function InviteMemberForm({
             </p>
           </div>
         )}
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-full">
+        <NoSSR>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-full">
             <div className="flex flex-row gap-4 w-full">
               <FormField
                 control={form.control}
@@ -209,8 +211,9 @@ export function InviteMemberForm({
                 )}
               </Button>
             </div>
-          </form>
-        </Form>
+            </form>
+          </Form>
+        </NoSSR>
       </div>
     </div>
   );

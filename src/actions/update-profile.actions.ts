@@ -4,6 +4,7 @@ import { auth, unstable_update } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
+import { auditLogger } from "@/lib/audit-logger"
 
 const ProfileUpdateSchema = z.object({
   name: z.string()
@@ -33,6 +34,9 @@ export async function updateProfileAction(formData: FormData): Promise<UpdatePro
     const session = await auth()
 
     if (!session?.user?.id) {
+      await auditLogger.logSecurityViolation(undefined, "User not authenticated", {
+        action: "updateProfileAction"
+      })
       return { success: false, error: "Usuário não autenticado" }
     }
 
@@ -41,6 +45,7 @@ export async function updateProfileAction(formData: FormData): Promise<UpdatePro
     })
 
     if (!validationResult.success) {
+      await auditLogger.logValidationFailure(session.user.id, "updateProfileAction", validationResult.error.errors)
       return { 
         success: false, 
         error: validationResult.error.errors[0].message
@@ -76,6 +81,14 @@ export async function updateProfileAction(formData: FormData): Promise<UpdatePro
       logError("UpdateSession", error, session.user.id)
     }
 
+    await auditLogger.logEvent("profile_update", {
+      userId: session.user.id,
+      metadata: {
+        newName: name,
+        action: "updateProfileAction"
+      }
+    })
+
     revalidatePath("/", "layout")
     revalidatePath("/organizations", "layout")
     revalidatePath("/complete-profile", "layout")
@@ -86,7 +99,9 @@ export async function updateProfileAction(formData: FormData): Promise<UpdatePro
       updatedName: updatedUser.name,
     }
   } catch (error) {
-    logError("UpdateProfile", error, auth().then(s => s?.user?.id).catch(() => undefined))
+    const userId = await auth().then(s => s?.user?.id).catch(() => undefined)
+    await auditLogger.logSystemError(userId, error instanceof Error ? error : new Error("Unknown error"), "updateProfileAction")
+    logError("UpdateProfile", error, userId)
     
     return {
       success: false,

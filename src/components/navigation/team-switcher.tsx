@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { memo, useCallback, useMemo, useEffect } from "react"
-import { ChevronsUpDown, Plus, Building2, Check } from "lucide-react"
-import { useRouter, usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { startTransition } from "react"
-import { useOrganization } from "@/contexts/organization-context"
+import * as React from "react";
+import { memo, useCallback, useMemo, useEffect } from "react";
+import { ChevronsUpDown, Plus, Building2, Check } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { startTransition } from "react";
+import { useOrganization } from "@/contexts/organization-context";
 
 import {
   DropdownMenu,
@@ -15,50 +15,48 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { CreateOrganizationForm } from "@/components/organization/create-organization-form"
-import { useOrganizations } from "@/hooks/useOrganizations"
+} from "@/components/ui/dialog";
+import { CreateOrganizationForm } from "@/components/organization/create-organization-form";
+import { useOrganizations } from "@/hooks/useOrganizations";
+import { HydrationBoundary } from "@/components/ui/hydration-boundary";
 
 interface Organization {
-  id: string
-  uniqueId: string
-  name: string
+  id: string;
+  uniqueId: string;
+  name: string;
 }
 
 const OrganizationItem = memo(function OrganizationItem({
   org,
   isActive,
-  onSelect
+  onSelect,
 }: {
-  org: Organization,
-  isActive: boolean,
-  onSelect: (org: Organization) => void
+  org: Organization;
+  isActive: boolean;
+  onSelect: (org: Organization) => void;
 }) {
   const handleClick = useCallback(() => {
-    onSelect(org)
-  }, [org, onSelect])
+    onSelect(org);
+  }, [org, onSelect]);
 
   return (
     <DropdownMenuItem
       key={org.id}
       onClick={handleClick}
-      className={cn(
-        "gap-2 p-2",
-        isActive && "bg-accent"
-      )}
+      className={cn("gap-2 p-2", isActive && "bg-accent")}
     >
       <div className="flex size-6 items-center justify-center rounded-md border">
         <Building2 className="size-3.5 shrink-0" />
@@ -71,69 +69,74 @@ const OrganizationItem = memo(function OrganizationItem({
         )}
       />
     </DropdownMenuItem>
-  )
-})
+  );
+});
 
 export function TeamSwitcher() {
-  const { isMobile } = useSidebar()
-  const router = useRouter()
-  const pathname = usePathname()
-  const currentOrgUniqueId = useMemo(() => pathname.split("/")[1], [pathname])
-  const [dialogOpen, setDialogOpen] = React.useState(false)
-  const [dropdownOpen, setDropdownOpen] = React.useState(false)
-  const { organization, refetchOrganization } = useOrganization()
+  const { isMobile } = useSidebar();
+  const router = useRouter();
+  const pathname = usePathname();
+  const currentOrgUniqueId = useMemo(() => pathname.split("/")[1], [pathname]);
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [dropdownOpen, setDropdownOpen] = React.useState(false);
+  const { organization, refetchOrganization } = useOrganization();
 
-  const { organizations, loading, error, refetch } = useOrganizations()
+  const { organizations, loading, error, refetch } = useOrganizations();
 
   useEffect(() => {
     if (dropdownOpen) {
-      refetch()
-      refetchOrganization?.()
+      refetch();
+      refetchOrganization?.();
     }
-  }, [dropdownOpen, refetch, refetchOrganization])
+  }, [dropdownOpen, refetch, refetchOrganization]);
 
-  const currentOrg = useMemo(() => 
-    organizations.find((org) => org.uniqueId === currentOrgUniqueId) || organization,
+  const currentOrg = useMemo(
+    () =>
+      organizations.find((org) => org.uniqueId === currentOrgUniqueId) ||
+      organization,
     [organizations, currentOrgUniqueId, organization]
-  )
+  );
 
   const handleCreateOrganization = useCallback(() => {
-    setDropdownOpen(false)
+    setDropdownOpen(false);
     startTransition(() => {
-      setDialogOpen(true)
-    })
-  }, [])
+      setDialogOpen(true);
+    });
+  }, []);
 
   const handleSuccess = useCallback(async () => {
-    setDialogOpen(false)
-    await refetch()
-    await refetchOrganization?.()
-  }, [refetch, refetchOrganization])
+    setDialogOpen(false);
+    await refetch();
+    await refetchOrganization?.();
+  }, [refetch, refetchOrganization]);
 
-  const handleSelectOrganization = useCallback((org: Organization) => {
-    startTransition(() => {
-      router.push(`/${org.uniqueId}`)
-    })
-    setDropdownOpen(false)
-  }, [router])
+  const handleSelectOrganization = useCallback(
+    (org: Organization) => {
+      startTransition(() => {
+        router.push(`/${org.uniqueId}`);
+      });
+      setDropdownOpen(false);
+    },
+    [router]
+  );
 
   const renderOrganizationList = useCallback(() => {
     if (loading) {
-      return <DropdownMenuItem disabled>Carregando...</DropdownMenuItem>
+      return <DropdownMenuItem disabled>Carregando...</DropdownMenuItem>;
     }
-    
+
     if (error) {
-      return <DropdownMenuItem disabled>Erro ao carregar</DropdownMenuItem>
+      return <DropdownMenuItem disabled>Erro ao carregar</DropdownMenuItem>;
     }
-    
+
     if (organizations.length === 0) {
       return (
         <DropdownMenuItem disabled className="text-muted-foreground">
           Nenhuma organização encontrada
         </DropdownMenuItem>
-      )
+      );
     }
-    
+
     return organizations.map((org) => (
       <OrganizationItem
         key={org.id}
@@ -141,74 +144,99 @@ export function TeamSwitcher() {
         isActive={currentOrgUniqueId === org.uniqueId}
         onSelect={handleSelectOrganization}
       />
-    ))
-  }, [loading, error, organizations, currentOrgUniqueId, handleSelectOrganization])
+    ));
+  }, [
+    loading,
+    error,
+    organizations,
+    currentOrgUniqueId,
+    handleSelectOrganization,
+  ]);
 
   return (
-    <>
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-            <DropdownMenuTrigger asChild>
-              <SidebarMenuButton
-                size="lg"
-                className={cn(
-                  "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
-                  currentOrg && "bg-sidebar-accent/50"
-                )}
+    <HydrationBoundary
+      fallback={
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" className="bg-sidebar-accent/50">
+              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                <Building2 className="size-4" />
+              </div>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-medium">Carregando...</span>
+                <span className="truncate text-xs">Organização</span>
+              </div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      }
+    >
+      <>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  className={cn(
+                    "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
+                    currentOrg && "bg-sidebar-accent/50"
+                  )}
+                >
+                  <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                    <Building2 className="size-4" />
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-medium">
+                      {currentOrg?.name || "Selecionar Organização"}
+                    </span>
+                    <span className="truncate text-xs">
+                      {currentOrg ? "Organização" : "Nenhuma selecionada"}
+                    </span>
+                  </div>
+                  <ChevronsUpDown className="ml-auto" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+                align="start"
+                side={isMobile ? "bottom" : "right"}
+                sideOffset={4}
               >
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Building2 className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">
-                    {currentOrg?.name || "Selecionar Organização"}
-                  </span>
-                  <span className="truncate text-xs">
-                    {currentOrg ? "Organização" : "Nenhuma selecionada"}
-                  </span>
-                </div>
-                <ChevronsUpDown className="ml-auto" />
-              </SidebarMenuButton>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-              align="start"
-              side={isMobile ? "bottom" : "right"}
-              sideOffset={4}
-            >
-              <DropdownMenuLabel className="text-muted-foreground text-xs">
-                Organizações
-              </DropdownMenuLabel>
-              {renderOrganizationList()}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handleCreateOrganization}
-                className="gap-2 p-2"
-              >
-                <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
-                  <Plus className="size-4" />
-                </div>
-                <div className="text-muted-foreground font-medium">
-                  Criar Organização
-                </div>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </SidebarMenuItem>
-      </SidebarMenu>
+                <DropdownMenuLabel className="text-muted-foreground text-xs">
+                  Organizações
+                </DropdownMenuLabel>
+                {renderOrganizationList()}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleCreateOrganization}
+                  className="gap-2 p-2"
+                >
+                  <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
+                    <Plus className="size-4" />
+                  </div>
+                  <div className="text-muted-foreground font-medium">
+                    Criar Organização
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Criar Nova Organização</DialogTitle>
-            <DialogDescription>
-              Crie uma nova organização para gerenciar seus projetos e equipes.
-            </DialogDescription>
-          </DialogHeader>
-          <CreateOrganizationForm onSuccess={handleSuccess} />
-        </DialogContent>
-      </Dialog>
-    </>
-  )
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Criar Nova Organização</DialogTitle>
+              <DialogDescription>
+                Crie uma nova organização para gerenciar seus projetos e
+                equipes.
+              </DialogDescription>
+            </DialogHeader>
+            <CreateOrganizationForm onSuccess={handleSuccess} />
+          </DialogContent>
+        </Dialog>
+      </>
+    </HydrationBoundary>
+  );
 }

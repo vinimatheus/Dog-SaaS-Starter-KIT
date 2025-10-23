@@ -4,11 +4,14 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
-import { unstable_cache } from "next/cache"
+import { OrganizationNameSchema, UniqueIdSchema } from "@/schemas/security"
+import { auditLogger } from "@/lib/audit-logger"
+import { permissionManager } from "@/lib/permission-manager"
+import { cacheManager } from "@/lib/cache-manager"
 
-const UpdateOrganizationSchema = z.object({
-  name: z.string().min(2).max(100),
-  uniqueOrgId: z.string().min(1),
+const UpdateOrganizationActionSchema = z.object({
+  name: OrganizationNameSchema,
+  uniqueOrgId: UniqueIdSchema,
 })
 
 interface UpdateOrganizationResult {
@@ -23,31 +26,28 @@ function logError(context: string, error: unknown, userId?: string | Promise<str
   )
 }
 
-const checkOrganizationAccess = unstable_cache(
-  async (uniqueOrgId: string, userId: string) => {
-    const organization = await prisma.organization.findFirst({
-      where: {
-        uniqueId: uniqueOrgId,
-        User_Organization: {
-          some: { 
-            user_id: userId,
-            role: {
-              in: ["OWNER", "ADMIN"]
-            }
-          },
-        },
-      },
-    })
-    
-    if (!organization) {
-      throw new Error("Organização não encontrada ou você não tem permissão para editá-la.")
-    }
-    
-    return organization
-  },
-  ["organization-access"],
-  { revalidate: 60 }
-)
+// Legacy checkOrganizationAccess function - replaced by PermissionManager
+const checkOrganizationAccess = async (uniqueOrgId: string, userId: string) => {
+  const organization = await prisma.organization.findUnique({
+    where: { uniqueId: uniqueOrgId }
+  })
+  
+  if (!organization) {
+    throw new Error("Organização não encontrada ou você não tem permissão para editá-la.")
+  }
+
+  // Use PermissionManager to check modification permissions
+  const canModify = await permissionManager.canModifyOrganization(userId, organization.id, {
+    logFailure: true,
+    context: "checkOrganizationAccess"
+  })
+
+  if (!canModify) {
+    throw new Error("Organização não encontrada ou você não tem permissão para editá-la.")
+  }
+  
+  return organization
+}
 
 export const updateOrganizationAction = async (
   formData: FormData
@@ -55,15 +55,19 @@ export const updateOrganizationAction = async (
   try {
     const session = await auth()
     if (!session?.user?.id) {
+      await auditLogger.logSecurityViolation(undefined, "User not authenticated", {
+        action: "updateOrganizationAction"
+      })
       return { success: false, error: "Autenticação necessária" }
     }
 
-    const validatedData = UpdateOrganizationSchema.safeParse({
+    const validatedData = UpdateOrganizationActionSchema.safeParse({
       name: formData.get("name"),
       uniqueOrgId: formData.get("uniqueOrgId"),
     })
 
     if (!validatedData.success) {
+      await auditLogger.logValidationFailure(session.user.id, "updateOrganizationAction", validatedData.error.errors)
       return { 
         success: false, 
         error: validatedData.error.errors[0].message 
@@ -75,10 +79,21 @@ export const updateOrganizationAction = async (
     await prisma.$transaction(async (tx) => {
       const organization = await checkOrganizationAccess(uniqueOrgId, session.user.id)
       
+      const oldName = organization.name
+      
       await tx.organization.update({
         where: { id: organization.id },
         data: { name },
       })
+
+      await auditLogger.logOrganizationManagement("organization_update", session.user.id, organization.id, name, {
+        organizationUniqueId: uniqueOrgId,
+        oldName,
+        newName: name
+      })
+
+      // Invalidate cache after organization update
+      await cacheManager.invalidateOrganizationCache(organization.id)
     })
 
     revalidatePath(`/${uniqueOrgId}`)
@@ -89,6 +104,9 @@ export const updateOrganizationAction = async (
     return { success: true }
   } catch (error) {
     const userId = await auth().then(s => s?.user?.id).catch(() => undefined)
+    
+    await auditLogger.logSystemError(userId, error instanceof Error ? error : new Error("Unknown error"), "updateOrganizationAction")
+    
     logError("UpdateOrganization", error, userId)
     
     return { 

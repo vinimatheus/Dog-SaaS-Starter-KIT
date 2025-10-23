@@ -7,6 +7,7 @@ import { redirect } from "next/navigation"
 import Stripe from "stripe"
 import { PlanType } from "@prisma/client"
 import { stripe } from "@/lib/stripe"
+import { permissionManager } from "@/lib/permission-manager"
 
 const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-04-30.basil",
@@ -20,27 +21,20 @@ export async function createCheckoutSession(organizationId: string) {
   }
 
   const organization = await prisma.organization.findUnique({
-    where: { id: organizationId },
-    include: {
-      User_Organization: {
-        where: {
-          user_id: session.user.id,
-        },
-      },
-    },
+    where: { id: organizationId }
   })
 
   if (!organization) {
     throw new Error("Organização não encontrada")
   }
 
-  const currentUserOrg = organization.User_Organization[0]
+  // Use PermissionManager to check subscription management permissions
+  const canManageSubscription = await permissionManager.canManageSubscription(session.user.id, organizationId, {
+    logFailure: true,
+    context: "createCheckoutSession"
+  })
 
-  if (!currentUserOrg) {
-    throw new Error("Usuário não é membro da organização")
-  }
-
-  if (currentUserOrg.role !== "OWNER") {
+  if (!canManageSubscription) {
     throw new Error("Apenas o dono pode gerenciar a assinatura")
   }
 
@@ -87,27 +81,20 @@ export async function createCustomerPortalSession(organizationId: string) {
   }
 
   const organization = await prisma.organization.findUnique({
-    where: { id: organizationId },
-    include: {
-      User_Organization: {
-        where: {
-          user_id: session.user.id,
-        },
-      },
-    },
+    where: { id: organizationId }
   })
 
   if (!organization) {
     throw new Error("Organização não encontrada")
   }
 
-  const currentUserOrg = organization.User_Organization[0]
+  // Use PermissionManager to check subscription management permissions
+  const canManageSubscription = await permissionManager.canManageSubscription(session.user.id, organizationId, {
+    logFailure: true,
+    context: "createCustomerPortalSession"
+  })
 
-  if (!currentUserOrg) {
-    throw new Error("Usuário não é membro da organização")
-  }
-
-  if (currentUserOrg.role !== "OWNER") {
+  if (!canManageSubscription) {
     throw new Error("Apenas o dono pode gerenciar a assinatura")
   }
 
@@ -245,27 +232,20 @@ export async function cancelSubscription(organizationId: string) {
   }
 
   const organization = await prisma.organization.findUnique({
-    where: { id: organizationId },
-    include: {
-      User_Organization: {
-        where: {
-          user_id: session.user.id,
-        },
-      },
-    },
+    where: { id: organizationId }
   })
 
   if (!organization) {
     throw new Error("Organização não encontrada")
   }
 
-  const currentUserOrg = organization.User_Organization[0]
+  // Use PermissionManager to check subscription management permissions
+  const canManageSubscription = await permissionManager.canManageSubscription(session.user.id, organizationId, {
+    logFailure: true,
+    context: "cancelSubscription"
+  })
 
-  if (!currentUserOrg) {
-    throw new Error("Usuário não é membro da organização")
-  }
-
-  if (currentUserOrg.role !== "OWNER") {
+  if (!canManageSubscription) {
     throw new Error("Apenas o dono pode gerenciar a assinatura")
   }
 

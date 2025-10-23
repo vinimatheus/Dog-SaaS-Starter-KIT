@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { InviteStatus } from "@prisma/client";
 import { resendInviteAction, deleteInviteAction } from "@/actions/invite-member.actions";
@@ -17,7 +17,9 @@ export function InviteActions({ inviteId, status, expiresAt }: InviteActionsProp
 	const [isPending, startTransition] = useTransition();
 	const [isDeleting, setIsDeleting] = useState(false);
 
-	const isExpired = new Date(expiresAt) < new Date();
+	const isExpired = useMemo(() => {
+		return new Date(expiresAt) < new Date();
+	}, [expiresAt]);
 	const canResend = status === "PENDING" && !isExpired;
 	const canDelete = status === "PENDING" || status === "EXPIRED";
 

@@ -5,7 +5,9 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { Role } from "@prisma/client"
 import { z } from "zod"
-import { unstable_cache } from "next/cache"
+import { auditLogger } from "@/lib/audit-logger"
+import { permissionManager } from "@/lib/permission-manager"
+import { cacheManager } from "@/lib/cache-manager"
 
 const MemberActionSchema = z.object({
   organizationId: z.string().min(1, "ID da organização é obrigatório"),
@@ -28,42 +30,15 @@ function logError(context: string, error: unknown, userId?: string | Promise<str
   )
 }
 
-const checkPermission = unstable_cache(
-  async (userId: string, organizationId: string, roles: Role[]) => {
-    const userOrg = await prisma.user_Organization.findFirst({
-      where: {
-        user_id: userId,
-        organization_id: organizationId,
-        role: { in: roles },
-      },
-    })
 
-    if (!userOrg) {
-      throw new Error("Você não tem permissão para realizar esta ação")
-    }
-
-    return userOrg
-  },
-  ["member-permissions"],
-  { revalidate: 60 }
-)
-
-const getOrganizationPath = unstable_cache(
-  async (organizationId: string) => {
-    const organization = await prisma.organization.findUnique({ 
-      where: { id: organizationId },
-      select: { uniqueId: true }
-    })
-    return organization?.uniqueId
-  },
-  ["organization-path"],
-  { revalidate: 300 }
-)
 
 async function revalidateOrganizationPath(organizationId: string) {
-  const uniqueId = await getOrganizationPath(organizationId)
-  if (uniqueId) {
-    revalidatePath(`/${uniqueId}`)
+  // Use cache manager to get organization data
+  const organization = await cacheManager.getOrganizationData(organizationId)
+  if (organization?.uniqueId) {
+    revalidatePath(`/${organization.uniqueId}`)
+    // Invalidate cache after member changes
+    await cacheManager.invalidateOrganizationCache(organizationId)
   }
 }
 
@@ -81,6 +56,11 @@ export async function updateMemberRoleAction(
 
     const session = await auth()
     if (!session?.user?.id) {
+      await auditLogger.logSecurityViolation(undefined, "User not authenticated", {
+        action: "updateMemberRoleAction",
+        organizationId,
+        targetUserId
+      })
       return { success: false, error: "Autenticação necessária" }
     }
 
@@ -90,7 +70,10 @@ export async function updateMemberRoleAction(
 
     return await prisma.$transaction(async (tx) => {
       try {
-        await checkPermission(session.user.id, organizationId, ["OWNER"])
+        await permissionManager.validateRole(session.user.id, organizationId, ["OWNER"], {
+          logFailure: true,
+          context: "updateMemberRoleAction"
+        })
       } catch (error) {
         return { success: false, error: error instanceof Error ? error.message : "Permissão negada" }
       }
@@ -120,6 +103,11 @@ export async function updateMemberRoleAction(
         data: { role: newRole },
       })
 
+      await auditLogger.logMemberManagement("member_role_changed", session.user.id, organizationId, targetUserId, undefined, {
+        oldRole: targetMember.role,
+        newRole: newRole
+      })
+
       await revalidateOrganizationPath(organizationId)
       return { success: true }
     })
@@ -145,12 +133,20 @@ export async function removeMemberAction(
 
     const session = await auth()
     if (!session?.user?.id) {
+      await auditLogger.logSecurityViolation(undefined, "User not authenticated", {
+        action: "removeMemberAction",
+        organizationId,
+        targetUserId
+      })
       return { success: false, error: "Autenticação necessária" }
     }
 
     return await prisma.$transaction(async (tx) => {
       try {
-        await checkPermission(session.user.id, organizationId, ["OWNER", "ADMIN"])
+        await permissionManager.validateRole(session.user.id, organizationId, ["OWNER", "ADMIN"], {
+          logFailure: true,
+          context: "removeMemberAction"
+        })
       } catch (error) {
         return { success: false, error: error instanceof Error ? error.message : "Permissão negada" }
       }
@@ -196,6 +192,10 @@ export async function removeMemberAction(
         data: { sessionVersion: { increment: 1 } }
       });
 
+      await auditLogger.logMemberManagement("member_removed", session.user.id, organizationId, targetUserId, undefined, {
+        removedRole: targetMember.role
+      })
+
       await revalidateOrganizationPath(organizationId)
       return { success: true }
     })
@@ -221,6 +221,11 @@ export async function transferOwnershipAction(
 
     const session = await auth()
     if (!session?.user?.id) {
+      await auditLogger.logSecurityViolation(undefined, "User not authenticated", {
+        action: "transferOwnershipAction",
+        organizationId,
+        targetUserId: newOwnerId
+      })
       return { success: false, error: "Autenticação necessária" }
     }
 
@@ -230,7 +235,10 @@ export async function transferOwnershipAction(
 
     return await prisma.$transaction(async (tx) => {
       try {
-        await checkPermission(session.user.id, organizationId, ["OWNER"])
+        await permissionManager.validateRole(session.user.id, organizationId, ["OWNER"], {
+          logFailure: true,
+          context: "transferOwnershipAction"
+        })
       } catch (error) {
         return { success: false, error: error instanceof Error ? error.message : "Permissão negada" }
       }
@@ -269,6 +277,16 @@ export async function transferOwnershipAction(
       await tx.organization.update({
         where: { id: organizationId },
         data: { owner_user_id: newOwnerId },
+      })
+
+      await auditLogger.logEvent("organization_ownership_transfer", {
+        userId: session.user.id,
+        metadata: {
+          organizationId,
+          previousOwnerId: session.user.id,
+          newOwnerId,
+          action: "transferOwnershipAction"
+        }
       })
 
       await revalidateOrganizationPath(organizationId)

@@ -7,10 +7,8 @@ import { redirect } from "next/navigation"
 import { Role } from "@prisma/client"
 import { z } from "zod"
 import { nanoid } from "nanoid"
-
-const OrganizationSchema = z.object({
-  name: z.string().min(2).max(100),
-})
+import { CreateOrganizationSchema, UniqueIdSchema } from "@/schemas/security"
+import { auditLogger } from "@/lib/audit-logger"
 
 function logError(context: string, error: unknown, userId?: string | Promise<string | undefined>) {
   const userIdStr = userId && typeof userId === 'string' ? `(User: ${userId.slice(0, 8)}...)` : ''
@@ -19,8 +17,8 @@ function logError(context: string, error: unknown, userId?: string | Promise<str
   )
 }
 
-function extractName(formData: FormData): string {
-  const result = OrganizationSchema.safeParse({
+function extractAndSanitizeName(formData: FormData): string {
+  const result = CreateOrganizationSchema.safeParse({
     name: formData.get("name"),
   })
 
@@ -47,6 +45,14 @@ async function generateUniqueSlug(name: string): Promise<string> {
 
   if (uniqueId.length > 50) {
     uniqueId = `${slugBase.slice(0, 40)}-${uniqueSuffix}`
+  }
+
+  // Validate the generated uniqueId against our security schema
+  try {
+    UniqueIdSchema.parse(uniqueId)
+  } catch (error) {
+    // If generated ID is invalid, create a safe fallback
+    uniqueId = `org-${nanoid(12).toLowerCase()}`
   }
 
   return uniqueId
@@ -85,17 +91,31 @@ export async function createOrganizationAction(formData: FormData) {
     const userId = session?.user?.id
 
     if (!userId) {
+      await auditLogger.logSecurityViolation(undefined, "User not authenticated", {
+        action: "createOrganizationAction"
+      })
       redirect("/")
     }
 
-    const name = extractName(formData)
+    const name = extractAndSanitizeName(formData)
     const uniqueId = await generateUniqueSlug(name)
     const organization = await createOrganizationWithOwner(userId, name, uniqueId)
+
+    await auditLogger.logOrganizationManagement("organization_creation", userId, organization.id, organization.name, {
+      organizationUniqueId: organization.uniqueId
+    })
 
     revalidatePath("/organizations")
     redirect(`/${organization.uniqueId}`)
   } catch (error) {
     const userId = await auth().then(s => s?.user?.id).catch(() => undefined)
+    
+    if (error instanceof z.ZodError) {
+      await auditLogger.logValidationFailure(userId, "createOrganizationAction", error.errors)
+    } else {
+      await auditLogger.logSystemError(userId, error instanceof Error ? error : new Error("Unknown error"), "createOrganizationAction")
+    }
+    
     logError("CreateOrganization", error, userId)
     throw error
   }

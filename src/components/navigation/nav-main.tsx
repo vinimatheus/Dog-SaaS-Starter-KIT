@@ -21,6 +21,7 @@ import {
   useSidebar
 } from "@/components/ui/sidebar"
 import type { Route, RouteItem } from "@/config/routes"
+import { HydrationBoundary } from "@/components/ui/hydration-boundary"
 
 
 const MenuItem = memo(function MenuItem({ 
@@ -124,17 +125,35 @@ export function NavMain({
   const pathname = usePathname();
 
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel>{groupLabel}</SidebarGroupLabel>
-      <SidebarMenu>
-        {routes.map((route) => (
-          <MenuItem 
-            key={route.url} 
-            route={route} 
-            pathname={pathname} 
-          />
-        ))}
-      </SidebarMenu>
-    </SidebarGroup>
+    <HydrationBoundary fallback={
+      <SidebarGroup>
+        <SidebarGroupLabel>{groupLabel}</SidebarGroupLabel>
+        <SidebarMenu>
+          {routes.map((route) => (
+            <SidebarMenuItem key={route.url}>
+              <SidebarMenuButton asChild>
+                <Link href={route.url}>
+                  <route.icon />
+                  <span>{route.title}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroup>
+    }>
+      <SidebarGroup>
+        <SidebarGroupLabel>{groupLabel}</SidebarGroupLabel>
+        <SidebarMenu>
+          {routes.map((route) => (
+            <MenuItem 
+              key={route.url} 
+              route={route} 
+              pathname={pathname} 
+            />
+          ))}
+        </SidebarMenu>
+      </SidebarGroup>
+    </HydrationBoundary>
   );
 }

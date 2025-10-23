@@ -1,59 +1,63 @@
-"use client"
+"use client";
 
-import { Invite } from "@prisma/client"
-import { Button } from "@/components/ui/button"
-import { MoreHorizontal } from "lucide-react"
+import { Invite } from "@prisma/client";
+import { Button } from "@/components/ui/button";
+import { MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { cn } from "@/lib/utils"
-import { toast } from "sonner"
-import { deleteInviteAction, resendInviteAction } from "@/actions/invite-member.actions"
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import {
+  deleteInviteAction,
+  resendInviteAction,
+} from "@/actions/invite-member.actions";
+import { NoSSR } from "@/components/ui/no-ssr";
 
 interface InviteCardProps {
   invite: Invite & {
     invited_by: {
-      name: string | null
-      email: string
-    }
-  }
-  isOwner: boolean
-  isAdmin: boolean
+      name: string | null;
+      email: string;
+    };
+  };
+  isOwner: boolean;
+  isAdmin: boolean;
 }
 
 export function InviteCard({ invite, isOwner, isAdmin }: InviteCardProps) {
-  const canManage = isOwner || isAdmin
+  const canManage = isOwner || isAdmin;
 
   const handleResend = async () => {
     try {
-      const result = await resendInviteAction(invite.id)
+      const result = await resendInviteAction(invite.id);
       if (result.success) {
-        toast.success("Convite reenviado com sucesso")
+        toast.success("Convite reenviado com sucesso");
       } else {
-        toast.error(result.error || "Erro ao reenviar convite")
+        toast.error(result.error || "Erro ao reenviar convite");
       }
     } catch (error: unknown) {
-      console.error("Erro ao reenviar convite:", error)
-      toast.error("Erro ao reenviar convite")
+      console.error("Erro ao reenviar convite:", error);
+      toast.error("Erro ao reenviar convite");
     }
-  }
+  };
 
   const handleDelete = async () => {
     try {
-      const result = await deleteInviteAction(invite.id)
+      const result = await deleteInviteAction(invite.id);
       if (result.success) {
-        toast.success("Convite excluído com sucesso")
+        toast.success("Convite excluído com sucesso");
       } else {
-        toast.error(result.error || "Erro ao excluir convite")
+        toast.error(result.error || "Erro ao excluir convite");
       }
     } catch (error: unknown) {
-      console.error("Erro ao excluir convite:", error)
-      toast.error("Erro ao excluir convite")
+      console.error("Erro ao excluir convite:", error);
+      toast.error("Erro ao excluir convite");
     }
-  }
+  };
 
   return (
     <div className="flex items-center justify-between p-4 bg-card rounded-lg border">
@@ -87,22 +91,27 @@ export function InviteCard({ invite, isOwner, isAdmin }: InviteCardProps) {
       </div>
 
       {canManage && invite.status === "PENDING" && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleResend}>
-              Reenviar convite
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-              Excluir convite
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <NoSSR>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleResend}>
+                Reenviar convite
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleDelete}
+                className="text-destructive"
+              >
+                Excluir convite
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </NoSSR>
       )}
     </div>
-  )
-} 
+  );
+}

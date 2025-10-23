@@ -10,6 +10,7 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { updateProfile } from "@/actions/profile.actions";
 import { useTransition } from "react";
+import { NoSSR } from "@/components/ui/no-ssr";
 
 const formSchema = z.object({
 	name: z.string().min(2, {
@@ -56,41 +57,43 @@ export function ProfileForm({ user, orgUniqueId }: ProfileFormProps) {
 	}
 
 	return (
-		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-				<FormField
-					control={form.control}
-					name="name"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Nome</FormLabel>
-							<FormControl>
-								<Input 
-									placeholder="Seu nome" 
-									{...field} 
-									disabled={isPending}
-								/>
-							</FormControl>
-							<FormDescription>
-								Este é o nome que será exibido para outros usuários.
-							</FormDescription>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+		<NoSSR>
+			<Form {...form}>
+				<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+					<FormField
+						control={form.control}
+						name="name"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Nome</FormLabel>
+								<FormControl>
+									<Input 
+										placeholder="Seu nome" 
+										{...field} 
+										disabled={isPending}
+									/>
+								</FormControl>
+								<FormDescription>
+									Este é o nome que será exibido para outros usuários.
+								</FormDescription>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
 
-				<div className="text-sm text-muted-foreground">
-					<p>E-mail: {user.email}</p>
-					<p className="text-xs mt-1">Para alterar seu e-mail, entre em contato com o suporte.</p>
-				</div>
+					<div className="text-sm text-muted-foreground">
+						<p>E-mail: {user.email}</p>
+						<p className="text-xs mt-1">Para alterar seu e-mail, entre em contato com o suporte.</p>
+					</div>
 
-				<Button 
-					type="submit" 
-					disabled={isPending}
-				>
-					{isPending ? "Salvando..." : "Salvar alterações"}
-				</Button>
-			</form>
-		</Form>
+					<Button 
+						type="submit" 
+						disabled={isPending}
+					>
+						{isPending ? "Salvando..." : "Salvar alterações"}
+					</Button>
+				</form>
+			</Form>
+		</NoSSR>
 	);
 } 

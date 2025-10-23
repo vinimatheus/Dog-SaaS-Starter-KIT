@@ -6,6 +6,12 @@ type SecurityEventType =
   | "unauthorized_organization_creation"
   | "unauthorized_profile_update"
   | "unauthorized_checkout_redirect"
+  | "unauthorized_organization_access"
+  | "organization_access"
+  | "organization_update"
+  | "invite_sent"
+  | "invite_accepted"
+  | "rate_limit_exceeded"
   | "organization_creation"
   | "checkout_redirect"
   | "profile_update"
@@ -14,6 +20,18 @@ type SecurityEventMetadata = {
   name?: string
   organizationId?: string
   plan?: PlanType
+  error?: string
+  action?: string
+  userRole?: string
+  requiredRole?: string
+  validationErrors?: any[]
+  errorMessage?: string
+  count?: number
+  limit?: number
+  windowMs?: number
+  firstAttempt?: number
+  duration?: number
+  [key: string]: any
 }
 
 type SecurityEventData = {

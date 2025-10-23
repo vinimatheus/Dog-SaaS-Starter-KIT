@@ -4,6 +4,7 @@ import { auth, unstable_update } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { auditLogger } from "@/lib/audit-logger";
 
 const updateProfileSchema = z.object({
 	name: z.string().min(2, {
@@ -28,6 +29,10 @@ export async function updateProfile(
 		const session = await auth();
 
 		if (!session?.user?.id) {
+			await auditLogger.logSecurityViolation(undefined, "User not authenticated", {
+				action: "updateProfile",
+				organizationUniqueId: orgUniqueId
+			});
 			return {
 				success: false,
 				error: "Não autorizado"
@@ -44,6 +49,9 @@ export async function updateProfile(
 		});
 
 		if (!userOrg) {
+			await auditLogger.logPermissionDenied(session.user.id, "updateProfile", "organization", undefined, undefined, {
+				organizationUniqueId: orgUniqueId
+			});
 			return {
 				success: false,
 				error: "Não autorizado"
@@ -68,6 +76,15 @@ export async function updateProfile(
 			},
 		});
 
+		await auditLogger.logEvent("profile_update", {
+			userId: session.user.id,
+			metadata: {
+				organizationUniqueId: orgUniqueId,
+				newName: validatedData.name,
+				action: "updateProfile"
+			}
+		});
+
 		revalidatePath(`/${orgUniqueId}/config/profile`);
 		revalidatePath("/", "layout");
 
@@ -79,14 +96,21 @@ export async function updateProfile(
 			},
 		};
 	} catch (error) {
-		console.error("[PROFILE_UPDATE]", error);
-
+		const userId = await auth().then(s => s?.user?.id).catch(() => undefined);
+		
 		if (error instanceof z.ZodError) {
+			await auditLogger.logValidationFailure(userId, "updateProfile", error.errors, {
+				organizationUniqueId: orgUniqueId
+			});
 			return {
 				success: false,
 				error: error.errors[0].message
 			};
 		}
+
+		await auditLogger.logSystemError(userId, error instanceof Error ? error : new Error("Unknown error"), "updateProfile", {
+			organizationUniqueId: orgUniqueId
+		});
 
 		return {
 			success: false,
