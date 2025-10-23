@@ -73,10 +73,12 @@ export const {
 					if (updatedUser) {
 						token.sessionVersion = updatedUser.sessionVersion;
 						token.name = updatedUser.name;
-						console.log("Token updated with new values:", { 
-							name: token.name, 
-							sessionVersion: token.sessionVersion 
-						});
+						if (process.env.NODE_ENV === 'development') {
+							console.log("Token updated with new values:", { 
+								name: token.name, 
+								sessionVersion: token.sessionVersion 
+							});
+						}
 					}
 				}
 			}
@@ -97,10 +99,12 @@ export const {
 				token.email = dbUser.email;
 				
 				if (token.sessionVersion !== dbUser.sessionVersion) {
-					console.log("Session version mismatch, refreshing token data", {
-						tokenVersion: token.sessionVersion,
-						dbVersion: dbUser.sessionVersion
-					});
+					if (process.env.NODE_ENV === 'development') {
+						console.log("Session version mismatch, refreshing token data", {
+							tokenVersion: token.sessionVersion,
+							dbVersion: dbUser.sessionVersion
+						});
+					}
 					token.sessionVersion = dbUser.sessionVersion;
 				}
 			}
@@ -132,12 +136,16 @@ export const {
 				data: { sessionVersion: { increment: 1 } }
 			});
 			
-			console.log("User updated, incremented session version for", user.id);
+			if (process.env.NODE_ENV === 'development') {
+				console.log("User updated, incremented session version for", user.id);
+			}
 		},
 		linkAccount: async ({ user, account }) => {
 			if (!user?.id || !account) return
 			
-			console.log(`Conta ${account.provider} vinculada ao usuário ${user.id}`);
+			if (process.env.NODE_ENV === 'development') {
+				console.log(`Conta ${account.provider} vinculada ao usuário ${user.id}`);
+			}
 			
 			await prisma.user.update({
 				where: { id: user.id },

@@ -18,16 +18,24 @@ export const authConfig: NextAuthConfig = {
         if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY não configurada");
         if (!email || !from) throw new Error("Email ou remetente não configurados");
 
-        console.log("URL recebida:", url);
+        // SEGURANÇA: Log do magic link apenas em desenvolvimento
+        // Em produção, o link nunca aparece no terminal por questões de segurança
+        if (process.env.NODE_ENV === 'development') {
+          console.log("🔗 Magic Link (DEV ONLY):", url);
+        }
         
         try {
           const urlObj = new URL(url);
-          console.log("URL params:", Object.fromEntries(urlObj.searchParams.entries()));
+          if (process.env.NODE_ENV === 'development') {
+            console.log("URL params:", Object.fromEntries(urlObj.searchParams.entries()));
+          }
           
           const recaptchaToken = urlObj.searchParams.get("recaptchaToken");
           
           if (recaptchaToken) {
-            console.log("Token reCAPTCHA encontrado, verificando...");
+            if (process.env.NODE_ENV === 'development') {
+              console.log("Token reCAPTCHA encontrado, verificando...");
+            }
             
             try {
               const recaptchaRes = await axios.post(
@@ -41,7 +49,9 @@ export const authConfig: NextAuthConfig = {
                 }
               );
               
-              console.log("Resposta reCAPTCHA:", recaptchaRes.data);
+              if (process.env.NODE_ENV === 'development') {
+                console.log("Resposta reCAPTCHA:", recaptchaRes.data);
+              }
               
               if (!recaptchaRes.data.success) {
                 console.error("Verificação do reCAPTCHA falhou");
@@ -51,7 +61,9 @@ export const authConfig: NextAuthConfig = {
               console.error("Erro na verificação do reCAPTCHA:", error);
             }
           } else {
-            console.log("AVISO: Token do reCAPTCHA não encontrado, mas prosseguindo...");
+            if (process.env.NODE_ENV === 'development') {
+              console.log("AVISO: Token do reCAPTCHA não encontrado, mas prosseguindo...");
+            }
           }
           
           const { Resend } = await import("resend");
@@ -101,7 +113,9 @@ export const authConfig: NextAuthConfig = {
             `,
           });
           
-          console.log("Email enviado com sucesso para:", email);
+          if (process.env.NODE_ENV === 'development') {
+            console.log("Email enviado com sucesso para:", email);
+          }
         } catch (error) {
           console.error("Erro durante o processo:", error);
           throw new Error(`Erro ao processar a solicitação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
@@ -120,7 +134,7 @@ export const authConfig: NextAuthConfig = {
   },
   callbacks: {
     async signIn({ user, account }) {
-      if (user.email) {
+      if (user.email && process.env.NODE_ENV === 'development') {
         console.log(`Tentativa de login com ${account?.provider} para o email ${user.email}`);
       }
       
