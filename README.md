@@ -11,7 +11,7 @@ Um kit inicial moderno e robusto para construir seu SaaS, construído com as mel
 - 📱 **Responsivo** e acessível
 - 🔐 **Segurança** reforçada
 - 📧 **Sistema de Email** com Resend
-- 🤖 **Proteção** contra bots com reCAPTCHA
+
 - 🐳 **Docker** para desenvolvimento e produção
 
 
@@ -61,8 +61,7 @@ cp .env.example .env
 # - STRIPE_SECRET_KEY
 # - STRIPE_WEBHOOK_SECRET
 # - STRIPE_PRO_PLAN_PRICE_ID
-# - RECAPTCHA_SECRET_KEY
-# - NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+
 # - NEXT_PUBLIC_APP_URL
 ```
 

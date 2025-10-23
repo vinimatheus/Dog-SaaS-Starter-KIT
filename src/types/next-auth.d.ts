@@ -18,13 +18,3 @@ declare module 'next-auth' {
 }
 
 
-declare module 'next-auth/providers' {
-  interface EmailConfig {
-    sendVerificationRequest: (params: EmailProviderSendVerificationRequestParams & {
-      token?: {
-        recaptchaToken?: string;
-        [key: string]: unknown;
-      }
-    }) => Promise<void>;
-  }
-}

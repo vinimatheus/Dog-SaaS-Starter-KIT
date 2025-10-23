@@ -84,7 +84,7 @@ export default function LandingPage() {
     "NextAuth.js",
     "Resend",
     "Docker",
-    "reCAPTCHA",
+
     "PWA",
     "SEO Otimizado",
     "Analytics",

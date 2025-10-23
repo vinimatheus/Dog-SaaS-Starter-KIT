@@ -1,7 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 import Resend from "next-auth/providers/resend";
-import axios from "axios";
 
 export const authConfig: NextAuthConfig = {
   providers: [
@@ -14,61 +13,26 @@ export const authConfig: NextAuthConfig = {
       apiKey: process.env.RESEND_API_KEY!,
       from: process.env.EMAIL_FROM!,
       server: process.env.NEXTAUTH_URL!,
-      sendVerificationRequest: async ({ identifier: email, url, provider: { from } }) => {
-        if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY não configurada");
-        if (!email || !from) throw new Error("Email ou remetente não configurados");
+      sendVerificationRequest: async ({
+        identifier: email,
+        url,
+        provider: { from },
+      }) => {
+        if (!process.env.RESEND_API_KEY)
+          throw new Error("RESEND_API_KEY não configurada");
+        if (!email || !from)
+          throw new Error("Email ou remetente não configurados");
 
         // SEGURANÇA: Log do magic link apenas em desenvolvimento
         // Em produção, o link nunca aparece no terminal por questões de segurança
-        if (process.env.NODE_ENV === 'development') {
+        if (process.env.NODE_ENV === "development") {
           console.log("🔗 Magic Link (DEV ONLY):", url);
         }
-        
+
         try {
-          const urlObj = new URL(url);
-          if (process.env.NODE_ENV === 'development') {
-            console.log("URL params:", Object.fromEntries(urlObj.searchParams.entries()));
-          }
-          
-          const recaptchaToken = urlObj.searchParams.get("recaptchaToken");
-          
-          if (recaptchaToken) {
-            if (process.env.NODE_ENV === 'development') {
-              console.log("Token reCAPTCHA encontrado, verificando...");
-            }
-            
-            try {
-              const recaptchaRes = await axios.post(
-                "https://www.google.com/recaptcha/api/siteverify",
-                null,
-                {
-                  params: {
-                    secret: process.env.RECAPTCHA_SECRET_KEY,
-                    response: recaptchaToken,
-                  },
-                }
-              );
-              
-              if (process.env.NODE_ENV === 'development') {
-                console.log("Resposta reCAPTCHA:", recaptchaRes.data);
-              }
-              
-              if (!recaptchaRes.data.success) {
-                console.error("Verificação do reCAPTCHA falhou");
-                throw new Error("Verificação do reCAPTCHA falhou");
-              }
-            } catch (error) {
-              console.error("Erro na verificação do reCAPTCHA:", error);
-            }
-          } else {
-            if (process.env.NODE_ENV === 'development') {
-              console.log("AVISO: Token do reCAPTCHA não encontrado, mas prosseguindo...");
-            }
-          }
-          
           const { Resend } = await import("resend");
           const resend = new Resend(process.env.RESEND_API_KEY);
-          
+
           await resend.emails.send({
             from,
             to: email,
@@ -76,7 +40,7 @@ export const authConfig: NextAuthConfig = {
             headers: {
               "X-Entity-Ref-ID": "dog-inc-login",
               "List-Unsubscribe": `<mailto:${from}?subject=unsubscribe>`,
-              "Precedence": "bulk",
+              Precedence: "bulk",
               "X-Auto-Response-Suppress": "OOF, AutoReply",
               "X-Gmail-Labels": "Login, Dog Inc",
             },
@@ -112,13 +76,17 @@ export const authConfig: NextAuthConfig = {
               </html>
             `,
           });
-          
-          if (process.env.NODE_ENV === 'development') {
+
+          if (process.env.NODE_ENV === "development") {
             console.log("Email enviado com sucesso para:", email);
           }
         } catch (error) {
           console.error("Erro durante o processo:", error);
-          throw new Error(`Erro ao processar a solicitação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+          throw new Error(
+            `Erro ao processar a solicitação: ${
+              error instanceof Error ? error.message : "Erro desconhecido"
+            }`
+          );
         }
       },
     }),
@@ -134,10 +102,12 @@ export const authConfig: NextAuthConfig = {
   },
   callbacks: {
     async signIn({ user, account }) {
-      if (user.email && process.env.NODE_ENV === 'development') {
-        console.log(`Tentativa de login com ${account?.provider} para o email ${user.email}`);
+      if (user.email && process.env.NODE_ENV === "development") {
+        console.log(
+          `Tentativa de login com ${account?.provider} para o email ${user.email}`
+        );
       }
-      
+
       return true;
     },
     async redirect({ baseUrl }) {
@@ -149,28 +119,28 @@ export const authConfig: NextAuthConfig = {
       name: `next-auth.session-token`,
       options: {
         httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production'
-      }
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
     },
     callbackUrl: {
       name: `next-auth.callback-url`,
       options: {
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production'
-      }
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
     },
     csrfToken: {
       name: `next-auth.csrf-token`,
       options: {
         httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production'
-      }
-    }
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
   },
   secret: process.env.AUTH_SECRET,
-}; 
+};
