@@ -9,19 +9,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Suprimir warnings de hidratação para componentes Radix UI
-  onDemandEntries: {
-    // Período de cache para páginas em desenvolvimento
-    maxInactiveAge: 25 * 1000,
-    // Número de páginas que devem ser mantidas simultaneamente
-    pagesBufferLength: 2,
-  },
   // Configurações experimentais para melhorar hidratação
   experimental: {
     // Otimizar hidratação
     optimizePackageImports: ['@radix-ui/react-dropdown-menu', '@radix-ui/react-collapsible'],
   },
-  // Configurações para Prisma na Vercel
+  // Configuração do Turbopack (Next.js 15+) - vazia para compatibilidade
+  turbopack: {},
+  // Configurações para Prisma (webpack fallback)
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals.push({
