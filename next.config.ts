@@ -20,7 +20,16 @@ const nextConfig: NextConfig = {
   experimental: {
     // Otimizar hidratação
     optimizePackageImports: ['@radix-ui/react-dropdown-menu', '@radix-ui/react-collapsible'],
-  }
+  },
+  // Configurações para Prisma na Vercel
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push({
+        '@prisma/client': 'commonjs @prisma/client',
+      });
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

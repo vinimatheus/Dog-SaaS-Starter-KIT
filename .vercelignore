@@ -1,0 +1,32 @@
+# Development files
+.env.local
+.env.development
+.env.test
+
+# Test files
+src/test/
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+
+# Documentation
+docs/
+README.md
+debug-auth.md
+
+# Development tools
+.vscode/
+.idea/
+
+# Logs
+logs/
+*.log
+
+# Cache
+.next/cache/
+node_modules/.cache/
+
+# Temporary files
+tmp/
+temp/
