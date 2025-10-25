@@ -3,5 +3,6 @@
     "src/app/api/**/*.ts": {
       "maxDuration": 30
     }
-  }
+  },
+  "installCommand": "npm ci --legacy-peer-deps"
 }
