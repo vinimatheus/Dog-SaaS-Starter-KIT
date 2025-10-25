@@ -2,6 +2,27 @@ import { NextResponse } from 'next/server'
 import { readdir, stat } from 'fs/promises'
 import { join } from 'path'
 
+interface PathInfo {
+  exists: boolean;
+  isDirectory?: boolean;
+  size?: number;
+  error?: string;
+}
+
+interface EngineInfo {
+  name: string;
+  exists: boolean;
+  size?: number;
+  path?: string;
+  error?: string;
+}
+
+interface PrismaImport {
+  success: boolean;
+  clientAvailable?: boolean;
+  error?: string;
+}
+
 export async function GET() {
   try {
     const debug = {
@@ -20,13 +41,13 @@ export async function GET() {
       },
       
       // Verificar se os diretórios existem
-      pathsExist: {},
+      pathsExist: {} as Record<string, PathInfo>,
       
       // Listar arquivos do Prisma
-      prismaFiles: [],
+      prismaFiles: [] as string[],
       
       // Verificar engines
-      engines: [],
+      engines: [] as EngineInfo[],
     }
 
     // Verificar se os caminhos existem
@@ -41,7 +62,7 @@ export async function GET() {
       } catch (error) {
         debug.pathsExist[key] = {
           exists: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         }
       }
     }
@@ -56,7 +77,7 @@ export async function GET() {
           f.includes('index')
         )
       } catch (error) {
-        debug.prismaFiles = [`Error reading directory: ${error.message}`]
+        debug.prismaFiles = [`Error reading directory: ${error instanceof Error ? error.message : 'Unknown error'}`]
       }
     }
 
@@ -82,13 +103,13 @@ export async function GET() {
         debug.engines.push({
           name: engine,
           exists: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         })
       }
     }
 
     // Tentar importar o Prisma Client
-    let prismaImport = null
+    let prismaImport: PrismaImport
     try {
       const { PrismaClient } = await import('@prisma/client')
       prismaImport = {
@@ -98,7 +119,7 @@ export async function GET() {
     } catch (error) {
       prismaImport = {
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
       }
     }
 
@@ -111,14 +132,18 @@ export async function GET() {
   } catch (error) {
     return NextResponse.json({
       error: 'Failed to debug Prisma engine',
-      message: error.message,
-      stack: error.stack,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
     }, { status: 500 })
   }
 }
 
-function generateRecommendation(debug: any) {
-  const recommendations = []
+function generateRecommendation(debug: {
+  pathsExist: Record<string, PathInfo>;
+  prismaFiles: string[];
+  engines: EngineInfo[];
+}) {
+  const recommendations: string[] = []
 
   if (!debug.pathsExist.prismaClient?.exists) {
     recommendations.push('Prisma client directory not found - run "prisma generate"')
@@ -128,12 +153,12 @@ function generateRecommendation(debug: any) {
     recommendations.push('No Prisma files found - client may not be generated')
   }
 
-  const hasEngines = debug.engines.some(e => e.exists)
+  const hasEngines = debug.engines.some((e: EngineInfo) => e.exists)
   if (!hasEngines) {
     recommendations.push('No query engines found - check binary targets in schema.prisma')
   }
 
-  const hasRhelEngine = debug.engines.find(e => e.name.includes('rhel-openssl-3.0.x'))?.exists
+  const hasRhelEngine = debug.engines.find((e: EngineInfo) => e.name.includes('rhel-openssl-3.0.x'))?.exists
   if (!hasRhelEngine) {
     recommendations.push('Missing rhel-openssl-3.0.x engine - required for Vercel')
   }
