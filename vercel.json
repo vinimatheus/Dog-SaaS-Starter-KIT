@@ -4,9 +4,5 @@
       "maxDuration": 30
     }
   },
-  "build": {
-    "env": {
-      "PRISMA_CLI_BINARY_TARGETS": "rhel-openssl-3.0.x,rhel-openssl-1.0.x,debian-openssl-3.0.x,linux-musl"
-    }
-  }
+  "buildCommand": "npm install --legacy-peer-deps && npx prisma generate && npx next build"
 }

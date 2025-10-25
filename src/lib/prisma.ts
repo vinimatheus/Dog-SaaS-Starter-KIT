@@ -4,26 +4,37 @@ declare global {
   var __prisma: PrismaClient | undefined
 }
 
-// Configuração otimizada para Vercel
+// Configuração específica para Vercel com fallbacks
 function createPrismaClient() {
-  return new PrismaClient({
+  const config: any = {
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
     datasources: {
       db: {
         url: process.env.DATABASE_URL,
       },
     },
-  })
+  }
+
+  // Configurações específicas para Vercel
+  if (process.env.VERCEL) {
+    config.__internal = {
+      engine: {
+        binaryPath: undefined, // Let Prisma auto-detect
+      },
+    }
+  }
+
+  return new PrismaClient(config)
 }
 
-// Singleton pattern para evitar múltiplas conexões
+// Singleton pattern
 export const prisma = globalThis.__prisma ?? createPrismaClient()
 
 if (process.env.NODE_ENV !== "production") {
   globalThis.__prisma = prisma
 }
 
-// Graceful shutdown para produção
+// Graceful shutdown
 if (process.env.NODE_ENV === "production") {
   process.on('beforeExit', async () => {
     try {
