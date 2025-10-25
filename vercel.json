@@ -3,12 +3,5 @@
     "src/app/api/**/*.ts": {
       "maxDuration": 30
     }
-  },
-  "build": {
-    "env": {
-      "PRISMA_CLI_BINARY_TARGETS": "native,rhel-openssl-1.0.x,rhel-openssl-3.0.x,debian-openssl-1.1.x,debian-openssl-3.0.x,linux-musl",
-      "PRISMA_GENERATE_SKIP_AUTOINSTALL": "true"
-    }
-  },
-  "installCommand": "npm install --legacy-peer-deps"
+  }
 }
